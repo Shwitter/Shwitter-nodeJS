@@ -1,5 +1,14 @@
-userController = require("../controllers/userController");
+const userController = require("../controllers/userController")
 
-exports.appRoute = router => {
-  router.get("/register", userController.getMenuController);
+appRoute = router => {
+  router.get('/register', userController.newUsersRegistration);
+  router.get('/login', userController.loginUser);
+  router.get('/reset-password', userController.resetPassword);
+
 };
+
+module.exports = (app, router) => {
+    //Initialize Routes
+    appRoute(router);
+};
+
