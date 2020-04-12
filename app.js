@@ -1,3 +1,7 @@
+const path = require('path');
+const expressValidator = require('express-validator');
+// const session = require('express-session');
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -13,20 +17,11 @@ const config = {
 };
 const logger = log({ console: true, file: false, label: config.name });
 
-//Create Express Router
-
-app.use('/user', bootstrap);
-// console.log(bootstrap)
-
-// bootstrap(app,router);
-
 app.use(bodyParser.json());
 app.use(cors());
 app.use(ExpressAPILogMiddleware(logger, { request: true }));
 
-// app.get('/', (req, res) => {
-//     res.status(200).send('hello world');
-// });
+app.use('/user', bootstrap);
 
 
 app.listen(config.port, config.host, (e)=> {
