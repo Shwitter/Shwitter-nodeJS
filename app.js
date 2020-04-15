@@ -1,6 +1,6 @@
-const path = require('path');
-const expressValidator = require('express-validator');
-// const session = require('express-session');
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config()
+}
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -8,7 +8,7 @@ const cors = require('cors');
 const { log, ExpressAPILogMiddleware } = require('@rama41222/node-logger');
 
 const app = express();
-const bootstrap = require("./src/routes/index");
+const indexRouter = require("./src/routes/index");
 
 const config = {
     name: 'shwitter',
@@ -21,7 +21,19 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(ExpressAPILogMiddleware(logger, { request: true }));
 
-app.use('/user', bootstrap);
+//db connection.
+const mongoose = require('mongoose')
+console.log(process.env.DATABASE_URL)
+mongoose.connect(process.env.DATABASE_URL, {useUnifiedTopology: true,
+    useNewUrlParser: true, })
+mongoose.set('useCreateIndex', true);
+const db = mongoose.connection
+db.on('error', error => console.error(error))
+db.once('open', () => console.log('Connected to Mongoose'))
+
+
+//Routers.
+app.use('/user', indexRouter);
 
 
 app.listen(config.port, config.host, (e)=> {
@@ -32,3 +44,10 @@ app.listen(config.port, config.host, (e)=> {
 });
 
 module.exports = app;
+
+
+
+
+
+
+
