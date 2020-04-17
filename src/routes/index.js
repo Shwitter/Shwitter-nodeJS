@@ -117,6 +117,35 @@ router.get("/me", auth, async (req, res) => {
     }
 });
 
+router.post("/change-password", auth, async(req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            errors: errors.array()
+        });
+    }
+    try{
+        const user = await userModel.findById(req.user.id);
+        const oldPass = req.body.password;
+        const newPass = req.body.newpass;
+        const isMatch = await bcrypt.compare(oldPass, user.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                message: "The password does not match!"
+            });
+        }
+        else {
+            user.password = bcrypt.hashSync(newPass, 10)
+        }
+        res.json(user);
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).json({
+            message: "Server Error"
+        });
+    }
+})
 
 module.exports = router;
 
