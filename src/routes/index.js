@@ -1,4 +1,4 @@
-const { check, validationResult } = require("express-validator/check");
+const { check, validationResult } = require("express-validator");
 const userModel = require("../models/userModel");
 const bcrypt = require('bcrypt');
 let express = require("express");
@@ -10,7 +10,7 @@ router.post('/register', async (req, res) => {
     const username = req.body.username;
     const email = req.body.email;
     const password = req.body.password;
-
+    console.log(password)
     try {
         let user = await userModel.findOne({
             email
@@ -20,7 +20,6 @@ router.post('/register', async (req, res) => {
                 msg: "User Already Exists"
             });
         }
-
         user = new userModel({
             username: username,
             email: email,
@@ -57,17 +56,19 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const errors = validationResult(req);
 
+    console.log(req.body)
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
         });
     }
 
-    const {email, password} = req.body;
+    const {username, password} = req.body;
     try {
         let user = await userModel.findOne({
-            email
+            username
         });
+        console.log(username)
         if (!user)
             return res.status(400).json({
                 message: "User Not Exist"
@@ -137,7 +138,8 @@ router.post("/change-password", auth, async(req, res) => {
         else {
             user.password = bcrypt.hashSync(newPass, 10)
         }
-        res.json(user);
+        user.save()
+        res.status(200).json("Password changed successfully.");
     }
     catch (e) {
         console.error(e);
