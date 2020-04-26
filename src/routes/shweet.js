@@ -4,7 +4,9 @@ const router = express.Router();
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
 const auth = require('../middleware/auth')
-// app.
+const EventEmitter = require('events');
+const Stream = new EventEmitter();
+
 
 // Get all shweets.
 router.get('/home', auth, async (req, res) => {
@@ -13,21 +15,7 @@ router.get('/home', auth, async (req, res) => {
             return shweets
         })
 
-        // res.json(shweets)
-
-        res.writeHead(200, {
-            Connection: "keep-alive",
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache"
-        })
-        console.log(shweets)
-        // setTimeout(() => {
-        res.write(`data: ${JSON.stringify(shweets)}`)
-        res.write("\n\n");
-        // }, 3000)
-        req.on('close', () => {
-            console.log('Connection closed')
-        })
+        res.status(200).json(shweets)
     } catch (e) {
         console.log(e)
     }
@@ -77,9 +65,17 @@ router.post('/shweet/create', auth, async (req, res) => {
             updated: Date.now(),
             comments: shweetComments._id
         });
+
         await shweet.save();
         console.log(await commentModel.findById(shweetComments._id))
         console.log(shweet)
+        setTimeout(() => {
+            Stream.emit('push', 'new_shweet', {
+                msg: 'user has just shweeted',
+                author: req.user.id
+            });
+            console.log('shweet created')
+        })
 
     } catch (e) {
         console.log(e);
@@ -112,6 +108,14 @@ router.post('/shweet/update', auth, async (req, res) => {
 
             await shweet.save();
             console.log(shweet)
+            setTimeout(() => {
+                Stream.emit('push', 'update_shweet', {
+                    msg: 'user has just updated shweet',
+                    author: req.user.id
+                });
+                console.log('shweet updated')
+            })
+
             res.status(200).json('Shweet updated successfully!')
         }
 
@@ -156,13 +160,13 @@ router.post('/shweet/like', auth, async (req, res) => {
     try {
         let id = req.body.shweet_id;
         let user = req.user.id;
-        console.log(id)
-        console.log(user)
+        // console.log(id)
+        // console.log(user)
         let shweet = await shweetModel.findById(id);
         if (!shweet) res.status(200).json('Could not find shweet');
 
         let likers = shweet.likes;
-        console.log(likers)
+        // console.log(likers)
         if (likers.includes(user)) {
             let index = likers.indexOf(user)
             likers.splice(index, 1)
@@ -176,11 +180,51 @@ router.post('/shweet/like', auth, async (req, res) => {
             await shweet.save()
             res.status(200).json('unliked')
         }
+        setTimeout(() => {
+            Stream.emit('push', 'shweet_likes_update', {
+                msg: 'shweet likes just updated.',
+                author: req.user.id,
+                shweet: id
+            });
+            console.log('shweet likes changed')
+        })
+
     } catch (e) {
         res.status(500).json('server error')
         console.error(e)
     }
 
 })
+
+// Make connection for events.
+router.get('/events', auth, async (req, res) => {
+    try {
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive'
+        });
+
+        Stream.on('push', (event, data) => {
+            res.write('event: ' + String(event) + '\n' + 'data: ' + JSON.stringify(data) + '\n\n');
+        });
+
+        setTimeout(() => {
+            Stream.emit('push', 'status', {
+                msg: 'connection established!'
+            });
+            console.log(`${req.user.id} Connection started`)
+        });
+
+        req.on('close', () => {
+            console.log(`${req.user.id} Connection closed`)
+        })
+
+    } catch (e) {
+        console.log(e)
+    }
+
+});
+
 
 module.exports = router;
