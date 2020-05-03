@@ -4,6 +4,8 @@ const router = express.Router();
 const auth = require('../middleware/auth')
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
+const EventEmitter = require('events');
+const Stream = new EventEmitter();
 
 // Create comment.
 router.post('/create', auth, async (req, res) => {
@@ -30,8 +32,19 @@ router.post('/create', auth, async (req, res) => {
 
         comments.comments.push(newComment)
 
+        console.log(comments)
         comments.save()
         res.status(200).json(comments);
+
+        setTimeout(() => {
+            Stream.emit('push', 'shweet_comments_update', {
+                msg: 'shweet comments just created.',
+                author: req.user.id,
+                comments_id: comments._id
+                //TODO
+            });
+            console.log('shweet comments changed')
+        })
 
     } catch (e) {
         console.error(e)
@@ -62,6 +75,16 @@ router.post('/update', auth, async (req, res) => {
                     comments.comments[index].body = newData.body;
                     await comments.save()
                     res.status(200).json('Updated successfully');
+
+                    setTimeout(() => {
+                        Stream.emit('push', 'shweet_comments_update', {
+                            msg: 'shweet comments just updated.',
+                            author: req.user.id,
+                            comments_id: comments._id
+                            //TODO
+                        });
+                        console.log('shweet comments updated')
+                    })
                 }
             } else {
                 res.status(403).json('Permission denied')
@@ -97,6 +120,15 @@ router.post('/delete/:id', auth, async (req, res) => {
                     comments.comments.splice(index, 1)
                     await comments.save()
                     res.status(200).json('deleted successfully');
+                    setTimeout(() => {
+                        Stream.emit('push', 'shweet_comments_update', {
+                            msg: 'shweet comments just deleted.',
+                            author: req.user.id,
+                            comments_id: comments._id
+                            //TODO
+                        });
+                        console.log('shweet comments deleted')
+                    })
                 } else {
                     res.status(403).json('Permission denied')
                 }

@@ -11,8 +11,15 @@ const Stream = new EventEmitter();
 // Get all shweets.
 router.get('/home', auth, async (req, res) => {
     try {
-        let shweets = await shweetModel.find({}, (err, shweets) => {
+        let shweets = {};
+        shweets.shweets = await shweetModel.find({}, (err, shweets) => {
+            console.log(shweets)
             return shweets
+        })
+
+        shweets.comments = await commentModel.find({}, (err, comments) => {
+            console.log(comments);
+            return comments
         })
 
         res.status(200).json(shweets)
