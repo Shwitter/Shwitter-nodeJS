@@ -9,20 +9,17 @@ const Stream = new EventEmitter();
 
 
 // Get all shweets.
-router.get('/home', auth, async (req, res) => {
+router.get('/shweets', auth, async (req, res) => {
     try {
         let shweets = {};
-        shweets.shweets = await shweetModel.find({}, (err, shweets) => {
+        // Merge shweets with it's own comments.
+        shweets = await shweetModel.find({}, (err, shweets) => {
             console.log(shweets)
             return shweets
-        })
-
-        shweets.comments = await commentModel.find({}, (err, comments) => {
-            console.log(comments);
-            return comments
-        })
+        }).populate('comments')
 
         res.status(200).json(shweets)
+
     } catch (e) {
         console.log(e)
     }
@@ -37,15 +34,17 @@ router.get('/shweet/:id', auth, async (req, res) => {
         console.log(shweet)
         let response = shweet;
         response.comments = await commentModel.findById(shweet.comments);
-        let comments = commentModel.findById(shweet.comments)
+        let comments = await commentModel.findById(shweet.comments)
         response.comments = comments.comments
         // console.log(comments)
         console.log(comments.comments)
         console.log(response)
-        res.json(response)
+        res.status(200).json(response)
 
     } catch (e) {
         console.error(e);
+        res.status(500).json('Server error')
+
     }
 })
 
@@ -53,8 +52,6 @@ router.get('/shweet/:id', auth, async (req, res) => {
 router.post('/shweet/create', auth, async (req, res) => {
     const errors = validationResult(req);
     try {
-        console.log(req.user)
-        res.status(200).json('kaia')
 
         // Create empty comments object
         let shweetComments = new commentModel({
@@ -82,7 +79,10 @@ router.post('/shweet/create', auth, async (req, res) => {
                 author: req.user.id
             });
             console.log('shweet created')
+            console.log(req.user)
         })
+        res.status(200).json(shweet)
+
 
     } catch (e) {
         console.log(e);
@@ -123,7 +123,7 @@ router.post('/shweet/update', auth, async (req, res) => {
                 console.log('shweet updated')
             })
 
-            res.status(200).json('Shweet updated successfully!')
+            res.status(200).json(shweet)
         }
 
     } catch (e) {
@@ -179,19 +179,18 @@ router.post('/shweet/like', auth, async (req, res) => {
             likers.splice(index, 1)
             shweet.likes = likers;
             await shweet.save()
-
-            res.status(200).json('liked')
+            res.status(200).json({shweet, action: 'unliked'})
         } else {
             likers.push(user);
             shweet.likes = likers;
             await shweet.save()
-            res.status(200).json('unliked')
+            res.status(200).json({shweet, action: 'liked'})
         }
         setTimeout(() => {
             Stream.emit('push', 'shweet_likes_update', {
                 msg: 'shweet likes just updated.',
                 author: req.user.id,
-                shweet: id
+                shweet: shweet
             });
             console.log('shweet likes changed')
         })

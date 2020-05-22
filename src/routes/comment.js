@@ -73,6 +73,7 @@ router.post('/update', auth, async (req, res) => {
                 if (e._id.toString() === newData.comment_id.toString()){
                     let index = comments.comments.indexOf(e)
                     comments.comments[index].body = newData.body;
+                    comments.comments[index].updated = Date.now();
                     await comments.save()
                     res.status(200).json('Updated successfully');
 
