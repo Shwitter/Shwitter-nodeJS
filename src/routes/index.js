@@ -15,6 +15,15 @@ router.post('/register', async (req, res) => {
         let user = await userModel.findOne({
             email
         });
+        let user_name = await userModel.findOne({
+            username
+        });
+        if (user_name) {
+            return res.status(400).json({
+                msg: "Username Already Exists"
+            });
+        }
+
         if (user) {
             return res.status(400).json({
                 msg: "User Already Exists"
@@ -36,8 +45,8 @@ router.post('/register', async (req, res) => {
         // Generate JWT token.
         jwt.sign(
             payload,
-            "randomString", {
-                expiresIn: 10000
+            "secret", {
+                expiresIn: 3600000
             },
             (err, token) => {
                 if (err) throw err;
@@ -90,7 +99,7 @@ router.post('/login', async (req, res) => {
             payload,
             "secret",
             {
-                expiresIn: 36000
+                expiresIn: 3600000
             },
             (err, token) => {
                 if (err) throw err;
