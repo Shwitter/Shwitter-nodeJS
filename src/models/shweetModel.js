@@ -27,7 +27,10 @@ const shweetSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectID,
         ref: 'comments',
         default: undefined
-    }
+    },
+    shweetImages: [{
+        type: String,
+    }]
 
 })
 let Shweet = mongoose.model('shweet', shweetSchema);

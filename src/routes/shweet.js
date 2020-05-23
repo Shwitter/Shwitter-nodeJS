@@ -5,6 +5,21 @@ const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
 const auth = require('../middleware/auth')
 const EventEmitter = require('events');
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
+    }
+})
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 1024 * 1024 * 5
+    }
+})
 const Stream = new EventEmitter();
 
 
@@ -49,7 +64,7 @@ router.get('/shweet/:id', auth, async (req, res) => {
 })
 
 //Create Sweet.
-router.post('/shweet/create', auth, async (req, res) => {
+router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req, res) => {
     const errors = validationResult(req);
     try {
 
@@ -61,13 +76,19 @@ router.post('/shweet/create', auth, async (req, res) => {
         console.log(shweetComments.comments)
         shweetComments.save()
 
+        let files = [];
+        req.files.forEach(file => {
+            files.push(file.path);
+        })
+
         let shweet = new shweetModel({
             title: req.body.title,
             body: req.body.body,
             author: req.user.id,
             created: Date.now(),
             updated: Date.now(),
-            comments: shweetComments._id
+            comments: shweetComments._id,
+            shweetImages: files
         });
 
         await shweet.save();
@@ -92,7 +113,7 @@ router.post('/shweet/create', auth, async (req, res) => {
 })
 
 // Update Shweet.
-router.post('/shweet/update', auth, async (req, res) => {
+router.post('/shweet/update', auth, upload.array('shweetImages', 10), async (req, res) => {
     const errors = validationResult(req);
 
     console.log(req.body)
@@ -109,9 +130,14 @@ router.post('/shweet/update', auth, async (req, res) => {
         if (!shweet) res.status(400).json('Shweet not found');
         if (req.user.id.toString() === shweet.author.toString()) {
 
+            let files = [];
+            req.files.forEach(file => {
+                files.push(file.path);
+            })
             shweet.title = newData.title;
             shweet.body = newData.body;
             shweet.updated = Date.now();
+            shweet.shweetImages = files;
 
             await shweet.save();
             console.log(shweet)

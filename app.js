@@ -12,15 +12,17 @@ const indexRouter = require("./src/routes/index");
 const shweetRouter = require("./src/routes/shweet");
 const commentRouter = require("./src/routes/comment");
 
+
 const config = {
     name: 'shwitter',
-    port: 3000,
-    host: '0.0.0.0',
+    port: process.env.SERVER_PORT,
+    host: process.env.SERVER_HOST,
 };
 const logger = log({ console: true, file: false, label: config.name });
 
 app.use(bodyParser.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'))
 app.use(ExpressAPILogMiddleware(logger, { request: true }));
 
 //db connection.
