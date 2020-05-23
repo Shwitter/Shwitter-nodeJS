@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
         // Generate JWT token.
         jwt.sign(
             payload,
-            "randomString", {
+            "secret", {
                 expiresIn: 3600000
             },
             (err, token) => {
