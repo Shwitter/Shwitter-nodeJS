@@ -1,4 +1,4 @@
-const { check, validationResult } = require("express-validator");
+const {check, validationResult} = require("express-validator");
 const userModel = require("../models/userModel");
 const bcrypt = require('bcrypt');
 let express = require("express");
@@ -120,21 +120,21 @@ router.post('/login', async (req, res) => {
 router.get("/me", auth, async (req, res) => {
     try {
         // request.user is getting fetched from Middleware after token authentication
-        const user = await userModel.findById(req.user.id);
+        let user = await userModel.findById(req.user.id);
         res.json(user);
     } catch (e) {
-        res.send({ message: "Error in Fetching user" });
+        res.send({message: "Error in Fetching user"});
     }
 });
 
-router.post("/change-password", auth, async(req, res) => {
+router.post("/change-password", auth, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
         });
     }
-    try{
+    try {
         const user = await userModel.findById(req.user.id);
         const oldPass = req.body.password;
         const newPass = req.body.newpass;
@@ -143,18 +143,63 @@ router.post("/change-password", auth, async(req, res) => {
             return res.status(400).json({
                 message: "The password does not match!"
             });
-        }
-        else {
+        } else {
             user.password = bcrypt.hashSync(newPass, 10)
         }
         user.save()
         res.status(200).json("Password changed successfully.");
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e);
         res.status(500).json({
             message: "Server Error"
         });
+    }
+})
+
+router.post("/subscribe", auth, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            errors: errors.array()
+        });
+    }
+    let id = req.body.user_id;
+    let user = req.user.id;
+    if (user !== id) {
+        try {
+            let user1 = await userModel.findById(user);
+            let user2 = await userModel.findById(id);
+            if (!user2) res.status(404).json('Could not find user');
+
+            let subscribes = user1.subscribes;
+            let subscribers = user2.subscribers;
+
+            if (subscribes.includes(id)) {
+                let index = subscribes.indexOf(id);
+                subscribes.splice(index, 1);
+                user1.subscribes = subscribes;
+                await user1.save();
+
+                index = subscribers.indexOf(user);
+                subscribers.splice(index, 1);
+                user2.subscribers = subscribers;
+                await user2.save();
+
+                res.status(200).json({user1, action: 'unfollowed'})
+            } else {
+                user1.subscribes.push(id);
+                await user1.save();
+
+                user2.subscribers.push(user);
+                await user2.save();
+                res.status(200).json({user1, action: 'followed'});
+
+            }
+
+        } catch (e) {
+            console.log(e);
+            res.status(500).json('internal error');
+        }
     }
 })
 
