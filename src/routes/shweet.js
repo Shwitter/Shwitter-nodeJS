@@ -32,6 +32,7 @@ router.get('/shweets', auth, async (req, res) => {
             console.log(shweets)
             return shweets
         }).populate('comments')
+            .populate('likes', 'username');
 
         res.status(200).json(shweets)
 
@@ -45,16 +46,10 @@ router.get('/shweets', auth, async (req, res) => {
 router.get('/shweet/:id', auth, async (req, res) => {
     try {
         let shweet = await shweetModel.findById(req.params.id)
+            .populate('comments')
+            .populate('likes', 'username');
         if (!shweet) res.status(400).json('Shweet not found');
-        console.log(shweet)
-        let response = shweet;
-        response.comments = await commentModel.findById(shweet.comments);
-        let comments = await commentModel.findById(shweet.comments)
-        response.comments = comments.comments
-        // console.log(comments)
-        console.log(comments.comments)
-        console.log(response)
-        res.status(200).json(response)
+        res.status(200).json(shweet)
 
     } catch (e) {
         console.error(e);
