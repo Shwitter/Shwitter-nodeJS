@@ -104,7 +104,8 @@ router.post('/login', async (req, res) => {
             (err, token) => {
                 if (err) throw err;
                 res.status(200).json({
-                    token
+                    token,
+                    username
                 });
             }
         );
@@ -157,6 +158,13 @@ router.post("/change-password", auth, async(req, res) => {
         });
     }
 })
+
+router.get('/userlist' , function (req , res) {
+    // console.log("aa");
+    userModel.find({}).select('username').then(function (users) {
+        res.send(users);
+    });
+});
 
 module.exports = router;
 
