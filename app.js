@@ -9,18 +9,20 @@ const { log, ExpressAPILogMiddleware } = require('@rama41222/node-logger');
 
 const app = express();
 const userRouter = require("./src/routes/user");
-// const shweetRouter = require("./src/routes/shweet");
-// const commentRouter = require("./src/routes/comment");
+const shweetRouter = require("./src/routes/shweet");
+const commentRouter = require("./src/routes/comment");
+
 
 const config = {
     name: 'shwitter',
-    port: 3000,
-    host: '0.0.0.0',
+    port: process.env.SERVER_PORT,
+    host: process.env.SERVER_HOST,
 };
 const logger = log({ console: true, file: false, label: config.name });
 
 app.use(bodyParser.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'))
 app.use(ExpressAPILogMiddleware(logger, { request: true }));
 
 //db connection.
@@ -36,8 +38,8 @@ db.once('open', () => console.log('Connected to Mongoose'))
 
 //Routers.
 app.use('/user', userRouter);
-// app.use(shweetRouter);
-// app.use('/comment', commentRouter);
+app.use(shweetRouter);
+app.use('/comment', commentRouter);
 
 app.get('/', function (req, res) {
     res.send('Shwitter api is working!')
