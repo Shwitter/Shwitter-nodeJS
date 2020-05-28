@@ -5,6 +5,21 @@ let express = require("express");
 let router = express.Router();
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './public/user');
+    },
+    filename: function (req, file, cb) {
+        cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
+    }
+})
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 1024 * 1024 * 5
+    }
+})
 
 router.post('/register', async (req, res) => {
     const username = req.body.username;
@@ -32,7 +47,8 @@ router.post('/register', async (req, res) => {
         user = new userModel({
             username: username,
             email: email,
-            password: bcrypt.hashSync(password, 10)
+            password: bcrypt.hashSync(password, 10),
+            avatar: 'public/avatar.png'
         });
 
         await user.save();
@@ -116,16 +132,45 @@ router.post('/login', async (req, res) => {
     }
 })
 
+// Update user.
+router.post("/update", auth, upload.single('avatar'), async (req, res) => {
+    try {
+        let user = await userModel.findById(req.user.id);
+        let file = req.file
+        if (file) {
+            user.avatar = file.path;
+        }
+        await user.save();
+        res.status(200).json(user);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('Internal error.')
+    }
+})
+
 //verify user with jwt token
 router.get("/me", auth, async (req, res) => {
     try {
         // request.user is getting fetched from Middleware after token authentication
-        let user = await userModel.findById(req.user.id);
+        let user = await userModel.findById(req.user.id)
+            .select('subscribes subscribers username email avatar')
+            .populate('subscribes', '-password')
+            .populate('subscribers', '-password');
         res.json(user);
     } catch (e) {
         res.send({message: "Error in Fetching user"});
     }
 });
+
+//Get all users.
+router.get("/all", auth, async (req, res) => {
+    try {
+        let users = await userModel.find({}).select('username email subscribers subscribes');
+        res.status(200).json(users);
+    } catch (e) {
+        res.status(500).json('Internal error.')
+    }
+})
 
 router.post("/change-password", auth, async (req, res) => {
     const errors = validationResult(req);

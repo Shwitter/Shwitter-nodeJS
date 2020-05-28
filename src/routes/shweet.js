@@ -3,12 +3,13 @@ const express = require('express');
 const router = express.Router();
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
+const userModel = require("../models/userModel");
 const auth = require('../middleware/auth')
 const EventEmitter = require('events');
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './uploads/');
+        cb(null, './public/shweet');
     },
     filename: function (req, file, cb) {
         cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
@@ -27,8 +28,10 @@ const Stream = new EventEmitter();
 router.get('/shweets', auth, async (req, res) => {
     try {
         let shweets = {};
-        // Merge shweets with it's own comments.
-        shweets = await shweetModel.find({}, (err, shweets) => {
+        let user = await userModel.findById(req.user.id);
+        let subscribes = user.subscribes;
+        // Merge shweets with it's own comments, get only subscribed shweets.
+        shweets = await shweetModel.find({author: {"$in" : subscribes }}, (err, shweets) => {
             console.log(shweets)
             return shweets
         }).populate('comments')
@@ -62,7 +65,7 @@ router.get('/shweet/:id', auth, async (req, res) => {
 router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req, res) => {
     const errors = validationResult(req);
     try {
-
+        // TODO use socket to send events.
         // Create empty comments object
         let shweetComments = new commentModel({
             comments: []

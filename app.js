@@ -22,7 +22,7 @@ const logger = log({ console: true, file: false, label: config.name });
 
 app.use(bodyParser.json());
 app.use(cors());
-app.use('/uploads', express.static('uploads'))
+app.use('/public', express.static('public'))
 app.use(ExpressAPILogMiddleware(logger, { request: true }));
 
 //db connection.

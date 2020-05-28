@@ -12,6 +12,9 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectID,
         ref: 'users'
     }],
+    avatar: {
+        type: String
+    }
 });
 
 
