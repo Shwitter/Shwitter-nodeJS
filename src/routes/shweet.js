@@ -112,7 +112,7 @@ router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req,
 })
 
 // Update Shweet.
-router.post('/shweet/update', auth, upload.array('shweetImages', 10), async (req, res) => {
+router.post('/shweet/update', auth, upload.array('shweetimages', 10), async (req, res) => {
     const errors = validationResult(req);
 
     console.log(req.body)
