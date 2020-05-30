@@ -24,7 +24,7 @@ const shweetSchema = mongoose.Schema({
         ref: 'comments',
         default: undefined
     },
-    shweetImages: [{
+    shweetimages: [{
         type: String,
     }]
 

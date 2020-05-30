@@ -87,7 +87,7 @@ router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req,
             created: Date.now(),
             updated: Date.now(),
             comments: shweetComments._id,
-            shweetImages: files
+            shweetimages: files
         });
 
         await shweet.save();
@@ -135,7 +135,7 @@ router.post('/shweet/update', auth, upload.array('shweetimages', 10), async (req
             })
             shweet.body = newData.body;
             shweet.updated = Date.now();
-            shweet.shweetImages = files;
+            shweet.shweetimages = files;
 
             await shweet.save();
             console.log(shweet)
