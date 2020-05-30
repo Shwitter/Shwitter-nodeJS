@@ -82,7 +82,6 @@ router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req,
         })
 
         let shweet = new shweetModel({
-            title: req.body.title,
             body: req.body.body,
             author: req.user.id,
             created: Date.now(),
@@ -134,7 +133,6 @@ router.post('/shweet/update', auth, upload.array('shweetImages', 10), async (req
             req.files.forEach(file => {
                 files.push(file.path);
             })
-            shweet.title = newData.title;
             shweet.body = newData.body;
             shweet.updated = Date.now();
             shweet.shweetImages = files;
