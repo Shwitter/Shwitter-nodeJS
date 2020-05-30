@@ -210,6 +210,7 @@ router.post("/subscribe", auth, async (req, res) => {
     }
     let id = req.body.user_id;
     let user = req.user.id;
+    if (id === user) res.status(404).json('Could not find user');
     if (user !== id) {
         try {
             let user1 = await userModel.findById(user);
@@ -229,15 +230,23 @@ router.post("/subscribe", auth, async (req, res) => {
                 subscribers.splice(index, 1);
                 user2.subscribers = subscribers;
                 await user2.save();
+                let result = await userModel.findById(user)
+                    .select('subscribes subscribers username email avatar')
+                    .populate('subscribes', 'username avatar')
+                    .populate('subscribers', 'username avatar');
 
-                res.status(200).json({user1, action: 'unfollowed'})
+                res.status(200).json({ result, action: 'ubsubscribed'})
             } else {
                 user1.subscribes.push(id);
                 await user1.save();
 
                 user2.subscribers.push(user);
                 await user2.save();
-                res.status(200).json({user1, action: 'followed'});
+                let result = await userModel.findById(user)
+                    .select('subscribes subscribers username email avatar')
+                    .populate('subscribes', 'username avatar')
+                    .populate('subscribers', 'username avatar');
+                res.status(200).json({result, action: 'subscribed'});
 
             }
 

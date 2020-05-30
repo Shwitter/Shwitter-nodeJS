@@ -31,12 +31,14 @@ router.get('/shweets', auth, async (req, res) => {
         let user = await userModel.findById(req.user.id);
         let subscribes = user.subscribes;
         // Merge shweets with it's own comments, get only subscribed shweets.
-        shweets = await shweetModel.find({author: {"$in" : subscribes }}, (err, shweets) => {
+        shweets = await shweetModel.find({author: {"$in": subscribes}}, (err, shweets) => {
             console.log(shweets)
             return shweets
         }).populate('comments')
-            .populate('likes', 'username');
+            .populate('likes', 'username')
+            .populate('author', 'username');
 
+        console.log(user.id)
         res.status(200).json(shweets)
 
     } catch (e) {
@@ -193,7 +195,9 @@ router.post('/shweet/like', auth, async (req, res) => {
         let user = req.user.id;
         // console.log(id)
         // console.log(user)
-        let shweet = await shweetModel.findById(id);
+        let shweet = await shweetModel.findById(id)
+            .populate('comments')
+            .populate('author', 'username avatar');
         if (!shweet) res.status(200).json('Could not find shweet');
 
         let likers = shweet.likes;
