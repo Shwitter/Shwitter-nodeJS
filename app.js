@@ -51,7 +51,7 @@ let users = {};
 
 io.on('connection', function (socket) {
     //Create Users array with all connected user.
-    socket.on('new user', async function (data) {
+    socket.on('new-user', async function (data) {
         let jwt = data.jwt;
         let decodedJwt = jwtDecode(jwt);
         let id = decodedJwt.user.id;
@@ -124,7 +124,7 @@ io.on('connection', function (socket) {
                     if (err) throw err;
                     //If receiver is connected (is online), send message.
                     if (receiver in users) {
-                        users[receiver].emit('new message', {message: message, sender: sender});
+                        users[receiver].emit('new-message', {message: message, sender: sender});
                     }
                 })
             }
@@ -143,7 +143,7 @@ io.on('connection', function (socket) {
                             if (err) throw err;
                             //If receiver is connected (is online), send message.
                             if (receiver in users) {
-                                users[receiver].emit('new message', {message: message, sender: sender});
+                                users[receiver].emit('new-message', {message: message, sender: sender});
                             }
                         })
 
@@ -157,7 +157,7 @@ io.on('connection', function (socket) {
                         });
                         newMessage.save(function (err) {
                             if (err) throw err;
-                            users[receiver].emit('new message', {message: message, sender: sender});
+                            users[receiver].emit('new-message', {message: message, sender: sender});
                         })
 
                     }
@@ -181,7 +181,6 @@ io.on('connection', function (socket) {
 
 
     socket.on("disconnect", function (data) {
-        //TODO:: check if this line below deletes username-socket after disconnect
         if (!socket.username) return;
         delete users[socket.username];
 
