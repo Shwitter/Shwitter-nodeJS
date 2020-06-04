@@ -16,7 +16,6 @@ const io = require('socket.io')(http);
 const userModel = require("./src/models/userModel");
 const chatModel = require("./src/models/chatModel")
 let jwtDecode = require('jwt-decode');
-const events = require('events');
 
 const config = {
     name: 'shwitter',
@@ -54,42 +53,44 @@ io.on('connection', function (socket) {
     socket.on('new-user', async function (data) {
         let jwt = data.jwt;
         let decodedJwt = jwtDecode(jwt);
-        let id = decodedJwt.user.id;
+        let id = decodedJwt.user.id;socket
         let userInfo = await userModel.findById(id);
         socket.username = userInfo.username;
-        //username should be equal to user socket
-        //to defined receiver in private messaging.
+        // username should be equal to user socket
+        // to defined receiver in private messaging.
         users[socket.username] = socket;
     })
 
+    // Send old messages to client.
     socket.on('old-messages', async function (data) {
-        //TODO:: es 6 xazi calke funqciashi gaitane, bevrgan iyeneb da prosta msg achame argmunetad.
-        let receiver = msg.receiver;
-        let jwt = msg.sender;
+        let receiver = data.receiver;
+        let jwt = data.sender;
         let decodedJwt = jwtDecode(jwt);
         let id = decodedJwt.user.id;
         let senderInfo = await userModel.findById(id);
         let sender = senderInfo.username;
+        let roomName = sender.concat('', receiver);
+        let roomName2 = receiver.concat('', sender);
 
-        let old_conversation = userModel.find({sender: sender, receiver: receiver}, function (err, doc) {
+        await chatModel.find({roomName: roomName}, function (err, doc) {
             if (err) throw err;
-            if (doc) {
-                //TODO:: console.log(doc)
-                //TODO:: dasorte createdis mixedvit.
-                socket.emit('old messages', {doc});
-            } else {
-                old_conversation = userModel.find({sender: receiver, receiver: sender}, function (err, doc) {
-                    if (err) throw err;
-                    if (doc) {
-                        socket.emit('old messages', {doc});
-                    }
-                });
+            if (doc.length > 0) {
+                users[receiver].emit('old-messages', doc);
             }
-        });
+            else {
+                chatModel.find({roomName: roomName2}, function (err, doc) {
+                    if (err) throw err;
+                    if (doc.length > 0) {
+                        users[receiver].emit('old-messages', doc);
+                    }
+                })
+            }
+        })
+
     })
 
-
-
+    // Send message in real time if user is online.
+    // And save in database.
     socket.on('send-message', async function (msg) {
         let message = msg.message;
         let receiver = msg.receiver;
@@ -98,85 +99,47 @@ io.on('connection', function (socket) {
         let id = decodedJwt.user.id;
         let senderInfo = await userModel.findById(id);
         let sender = senderInfo.username;
-        let roomName = sender + receiver;
+        let roomName = sender.concat('', receiver);
+        let roomName2 = receiver.concat('', sender);
 
-        //Test rooms
-        let room = await chatModel.find({roomName: roomName}, function (err, doc) {
+        //roomName = ananofarna
+        //roomName2 = farnanano
+
+        //Check if roomName already exists.
+        await chatModel.find({roomName: roomName}, function (err, doc) {
             if (err) throw err;
-            if (doc) {
-                console.log(doc);
+            if (doc.length > 0) {
+                sendMessage(roomName);
             }
-
-        })
-
-        //If receiver is connected.
-        let old_conversation = await chatModel.find({sender: sender, receiver: receiver}, function (err, doc) {
-            if (err) throw err;
-            //If chat history already exist, use old roomName
-            if (doc) {
-                let newMessage = new chatModel({
-                    roomName: doc.roomName,
-                    sender: sender,
-                    message: message,
-                    receiver: receiver
-                });
-                newMessage.save(function (err) {
+            else {
+                 chatModel.find({roomName: roomName2}, function (err, doc) {
                     if (err) throw err;
-                    //If receiver is connected (is online), send message.
-                    if (receiver in users) {
-                        users[receiver].emit('new-message', {message: message, sender: sender});
+                     if (doc.length > 0) {
+                         sendMessage(roomName2);
                     }
+                     // else create new room
+                     else {
+                         sendMessage(roomName);
+                     }
                 })
             }
+        })
 
-            else {
-                old_conversation = userModel.find({sender: receiver, receiver: sender}, function (err, doc) {
-                    if (err) throw err;
-                    if (doc) {
-                        let newMessage = new chatModel({
-                            roomName: doc.roomName,
-                            sender: sender,
-                            message: message,
-                            receiver: receiver
-                        });
-                        newMessage.save(function (err) {
-                            if (err) throw err;
-                            //If receiver is connected (is online), send message.
-                            if (receiver in users) {
-                                users[receiver].emit('new-message', {message: message, sender: sender});
-                            }
-                        })
-
-                    }
-                    else {
-                        let newMessage = new chatModel({
-                            roomName: roomName,
-                            sender: sender,
-                            message: message,
-                            receiver: receiver
-                        });
-                        newMessage.save(function (err) {
-                            if (err) throw err;
-                            users[receiver].emit('new-message', {message: message, sender: sender});
-                        })
-
-                    }
-                });
-
-
-
-            }
-
-        });
-
-
-        // let newMessage = new chatModel({sender: socket.nickname, message: message, receiver: receiver});
-        // newMessage.save(function (err) {
-        //     if(err) throw err;
-        //     io.emit('old messages', {message: message, username: socket.nickname});
-        // })
-
-
+        function sendMessage(roomName){
+            let newMessage = new chatModel({
+                roomName: roomName,
+                sender: sender,
+                message: message,
+                receiver: receiver,
+            });
+            newMessage.save(function (err) {
+                if (err) throw err;
+                //If receiver is connected (is online), send message.
+                if (receiver in users) {
+                    users[receiver].emit('new-message', {message: message, sender: sender});
+                }
+            })
+        }
     });
 
 
@@ -194,7 +157,6 @@ app.use('/user', userRouter);
 
 app.get('/', function (req, res) {
     res.send('Shwitter api is working!')
-    res.sendFile(__dirname + '/index.html')
 })
 
 http.listen(config.port, config.host, (e) => {
