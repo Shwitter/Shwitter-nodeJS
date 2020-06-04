@@ -25,7 +25,6 @@ router.post('/register', async (req, res) => {
     const username = req.body.username;
     const email = req.body.email;
     const password = req.body.password;
-    console.log(password)
     try {
         let user = await userModel.findOne({
             email
@@ -73,7 +72,6 @@ router.post('/register', async (req, res) => {
         );
 
     } catch (err) {
-        console.log(err.message);
         res.status(500).send("Error in Saving");
     }
 });
@@ -81,7 +79,6 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const errors = validationResult(req);
 
-    console.log(req.body)
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
@@ -93,7 +90,6 @@ router.post('/login', async (req, res) => {
         let user = await userModel.findOne({
             username
         });
-        console.log(username)
         if (!user)
             return res.status(400).json({
                 message: "User Not Exist"
@@ -115,12 +111,13 @@ router.post('/login', async (req, res) => {
             payload,
             "secret",
             {
-                expiresIn: 3600000
+                expiresIn: 360000000
             },
             (err, token) => {
                 if (err) throw err;
                 res.status(200).json({
-                    token
+                    token,
+                    username
                 });
             }
         );
@@ -256,6 +253,13 @@ router.post("/subscribe", auth, async (req, res) => {
         }
     }
 })
+
+router.get('/userlist' , function (req , res) {
+    // console.log("aa");
+    userModel.find({}).select('username').then(function (users) {
+        res.send(users);
+    });
+});
 
 module.exports = router;
 
