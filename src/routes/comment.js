@@ -22,19 +22,22 @@ router.post('/create', auth, async (req, res) => {
         console.log(req.body.comment_id)
         let comments = await commentModel.findById(req.body.comment_id);
         if (!comments) res.status(400).json('comments not found, might be wrong comments id');
-        console.log(comments)
         let newComment = {
             body: req.body.body,
             author: req.user.id,
             created: Date.now(),
             updated: Date.now()
         }
+        console.log(req.user.id)
 
         comments.comments.push(newComment)
 
         console.log(comments)
-        comments.save()
-        res.status(200).json(comments);
+        await comments.save()
+
+        let response = await commentModel.findById(req.body.comment_id)
+            .populate('comments.author', 'username avatar');
+        res.status(200).json(response);
 
         setTimeout(() => {
             Stream.emit('push', 'shweet_comments_update', {
@@ -66,16 +69,23 @@ router.post('/update', auth, async (req, res) => {
 
         let newData = req.body;
         let comments = await commentModel.findById(req.body.comments_id);
-        console.log(comments)
         if (!comments) res.status(400).json('Comment not found');
-        for (const e of comments.comments) {
-            if (e.author.toString() === req.user.id.toString()){
-                if (e._id.toString() === newData.comment_id.toString()){
+        for (let e of comments.comments) {
+
+            //Check if comments match
+            if (e._id.toString() === newData.comment_id.toString()){
+
+                //Check if authors match
+                if (e.author.toString() === req.user.id.toString()){
                     let index = comments.comments.indexOf(e)
                     comments.comments[index].body = newData.body;
                     comments.comments[index].updated = Date.now();
                     await comments.save()
-                    res.status(200).json('Updated successfully');
+
+                    let response = await commentModel.findById(req.body.comments_id)
+                        .populate('comments.author', 'username avatar');
+
+                    res.status(200).json(response);
 
                     setTimeout(() => {
                         Stream.emit('push', 'shweet_comments_update', {
@@ -86,9 +96,9 @@ router.post('/update', auth, async (req, res) => {
                         });
                         console.log('shweet comments updated')
                     })
+                } else {
+                    res.status(403).json('Permission denied')
                 }
-            } else {
-                res.status(403).json('Permission denied')
             }
         }
     } catch (e) {
@@ -98,7 +108,7 @@ router.post('/update', auth, async (req, res) => {
 })
 
 // Delete Comment
-router.post('/delete/:id', auth, async (req, res) => {
+router.delete('/comment/:id', auth, async (req, res) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -110,7 +120,6 @@ router.post('/delete/:id', auth, async (req, res) => {
     try {
         console.log(req.params.id)
         let comments = await commentModel.findById(req.body.comments_id);
-        console.log(comments)
         if (!comments) res.status(400).json('Comments not found');
 
         let index = -1
@@ -120,7 +129,12 @@ router.post('/delete/:id', auth, async (req, res) => {
                     index = comments.comments.indexOf(e)
                     comments.comments.splice(index, 1)
                     await comments.save()
-                    res.status(200).json('deleted successfully');
+
+                    let response = await commentModel.findById(req.body.comments_id)
+                        .populate('comments.author', 'username avatar');
+
+                    res.status(200).json(response);
+
                     setTimeout(() => {
                         Stream.emit('push', 'shweet_comments_update', {
                             msg: 'shweet comments just deleted.',
