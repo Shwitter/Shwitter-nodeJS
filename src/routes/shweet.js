@@ -24,8 +24,8 @@ const upload = multer({
 const Stream = new EventEmitter();
 
 
-// Get all shweets.
-router.get('/shweets', auth, async (req, res) => {
+// Get all subscribed shweets.
+router.get('/subscribed-shweets', auth, async (req, res) => {
     try {
         let shweets = {};
         let user = await userModel.findById(req.user.id);
@@ -39,6 +39,26 @@ router.get('/shweets', auth, async (req, res) => {
             .populate('author', 'username');
 
         console.log(user.id)
+        res.status(200).json(shweets)
+
+    } catch (e) {
+        console.log(e)
+    }
+
+});
+
+// Get all shweets.
+router.get('/shweets', auth, async (req, res) => {
+    try {
+        let shweets = {};
+        // Merge shweets with it's own comments, get only subscribed shweets.
+        shweets = await shweetModel.find({author: {"$ne": req.user.id}}, (err, shweets) => {
+            console.log(shweets)
+            return shweets
+        }).populate('comments')
+            .populate('likes', 'username')
+            .populate('author', 'username');
+
         res.status(200).json(shweets)
 
     } catch (e) {
