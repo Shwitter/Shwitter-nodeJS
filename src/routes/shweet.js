@@ -84,7 +84,7 @@ router.get('/shweet/:id', auth, async (req, res) => {
 })
 
 //Create Sweet.
-router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req, res) => {
+router.post('/shweet/create', auth, async (req, res) => {
     const errors = validationResult(req);
     try {
         // TODO use socket to send events.
@@ -96,18 +96,13 @@ router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req,
         console.log(shweetComments.comments)
         shweetComments.save()
 
-        let files = [];
-        req.files.forEach(file => {
-            files.push(file.path);
-        })
-
         let shweet = new shweetModel({
             body: req.body.body,
             author: req.user.id,
             created: Date.now(),
             updated: Date.now(),
             comments: shweetComments._id,
-            shweetimages: files
+            shweetimages: req.body.shweetimage
         });
 
         await shweet.save();
@@ -132,7 +127,7 @@ router.post('/shweet/create', auth, upload.array('shweetimage', 10), async (req,
 })
 
 // Update Shweet.
-router.post('/shweet/update', auth, upload.array('shweetimages', 10), async (req, res) => {
+router.post('/shweet/update', auth, async (req, res) => {
     const errors = validationResult(req);
 
     console.log(req.body)
@@ -149,13 +144,10 @@ router.post('/shweet/update', auth, upload.array('shweetimages', 10), async (req
         if (!shweet) res.status(400).json('Shweet not found');
         if (req.user.id.toString() === shweet.author.toString()) {
 
-            let files = [];
-            req.files.forEach(file => {
-                files.push(file.path);
-            })
             shweet.body = newData.body;
             shweet.updated = Date.now();
-            shweet.shweetimages = files;
+            if (newData.shweetimage)
+            shweet.shweetimages = newData.shweetimage;
 
             await shweet.save();
             console.log(shweet)
