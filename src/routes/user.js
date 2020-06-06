@@ -130,13 +130,14 @@ router.post('/login', async (req, res) => {
 })
 
 // Update user.
-router.post("/update", auth, upload.single('avatar'), async (req, res) => {
+router.post("/update", auth, async (req, res) => {
     try {
         let user = await userModel.findById(req.user.id);
-        let file = req.file
-        if (file) {
-            user.avatar = file.path;
-        }
+        let file = req.body.avatar;
+
+        if (file)
+            user.avatar = file
+
         await user.save();
         res.status(200).json(user);
     } catch (e) {

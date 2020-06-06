@@ -169,7 +169,7 @@ router.post('/shweet/update', auth, async (req, res) => {
 })
 
 // Delete shweet
-router.delete('/shweet/delete/:id', auth, async (req, res) => {
+router.post('/shweet/delete/:id', auth, async (req, res) => {
     const errors = validationResult(req);
 
     console.log(req.body)
