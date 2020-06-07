@@ -12,7 +12,7 @@ const userRouter = require("./src/routes/user");
 
 // const chatRouter = require("./src/routes/chat");
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, { origins: '*:*'});
 const userModel = require("./src/models/userModel");
 const chatModel = require("./src/models/chatModel")
 let jwtDecode = require('jwt-decode');
@@ -27,10 +27,6 @@ const logger = log({console: true, file: false, label: config.name});
 app.use(bodyParser.json());
 app.use(cors());
 app.use(ExpressAPILogMiddleware(logger, {request: true}));
-
-
-//TODO::dont commit this line.
-app.options('*', cors());
 
 app.use(express.static(__dirname));
 
@@ -62,30 +58,30 @@ io.on('connection', function (socket) {
     })
 
     // Send old messages to client.
-    socket.on('old-messages', async function (data) {
+    socket.on('old-messages',  function (data) {
         let receiver = data.receiver;
         let jwt = data.sender;
         let decodedJwt = jwtDecode(jwt);
         let id = decodedJwt.user.id;
-        let senderInfo = await userModel.findById(id);
-        let sender = senderInfo.username;
-        let roomName = sender.concat('', receiver);
-        let roomName2 = receiver.concat('', sender);
+        userModel.findById(id).then(function (data) {
+            let sender = data.username;
+            let roomName = sender.concat('', receiver);
+            let roomName2 = receiver.concat('', sender);
 
-        await chatModel.find({roomName: roomName}, function (err, doc) {
-            if (err) throw err;
-            if (doc.length > 0) {
-                users[receiver].emit('old-messages', doc);
-            }
-            else {
-                chatModel.find({roomName: roomName2}, function (err, doc) {
-                    if (err) throw err;
-                    if (doc.length > 0) {
-                        users[receiver].emit('old-messages', doc);
-                    }
-                })
-            }
-        })
+            chatModel.find({roomName: roomName}).then(function (doc) {
+                if (doc.length > 0) {
+                    users[sender].emit('old-messages', doc);
+                }
+                else {
+                    chatModel.find({roomName: roomName2}).then(function (doc) {
+                        if (doc.length > 0) {
+                            users[sender].emit('old-messages', doc);
+                        }
+                    })
+                }
+            })
+
+        });
 
     })
 
