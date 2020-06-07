@@ -12,7 +12,7 @@ const userRouter = require("./src/routes/user");
 
 // const chatRouter = require("./src/routes/chat");
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, { origins: '*:*'});
 const userModel = require("./src/models/userModel");
 const chatModel = require("./src/models/chatModel")
 let jwtDecode = require('jwt-decode');
@@ -27,10 +27,6 @@ const logger = log({console: true, file: false, label: config.name});
 app.use(bodyParser.json());
 app.use(cors());
 app.use(ExpressAPILogMiddleware(logger, {request: true}));
-
-
-//TODO::dont commit this line.
-app.options('*', cors());
 
 app.use(express.static(__dirname));
 
@@ -71,7 +67,6 @@ io.on('connection', function (socket) {
             let sender = data.username;
             let roomName = sender.concat('', receiver);
             let roomName2 = receiver.concat('', sender);
-            console.log(roomName, roomName2);
 
             chatModel.find({roomName: roomName}).then(function (doc) {
                 if (doc.length > 0) {
@@ -80,7 +75,6 @@ io.on('connection', function (socket) {
                 else {
                     chatModel.find({roomName: roomName2}).then(function (doc) {
                         if (doc.length > 0) {
-                            console.log(doc);
                             users[sender].emit('old-messages', doc);
                         }
                     })
