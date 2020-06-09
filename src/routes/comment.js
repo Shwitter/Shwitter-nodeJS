@@ -102,7 +102,7 @@ router.post('/update', auth, async (req, res) => {
 })
 
 // Delete Comment
-router.post('/comment/:id', auth, async (req, res) => {
+router.post('/delete/:id', auth, async (req, res) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
