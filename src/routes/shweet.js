@@ -5,7 +5,7 @@ const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
 const userModel = require("../models/userModel");
 const auth = require('../middleware/auth')
-const EventEmitter = require('events');
+const eventEmitter = require('../class/eventEmitter')
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -21,7 +21,7 @@ const upload = multer({
         fileSize: 1024 * 1024 * 5
     }
 })
-const Stream = new EventEmitter();
+// const Stream = new EventEmitter();
 
 
 // Get all subscribed shweets.
@@ -87,7 +87,6 @@ router.get('/shweet/:id', auth, async (req, res) => {
 router.post('/shweet/create', auth, async (req, res) => {
     const errors = validationResult(req);
     try {
-        // TODO use socket to send events.
         // Create empty comments object
         let shweetComments = new commentModel({
             comments: []
@@ -106,16 +105,12 @@ router.post('/shweet/create', auth, async (req, res) => {
         });
 
         await shweet.save();
-        console.log(await commentModel.findById(shweetComments._id))
-        console.log(shweet)
-        setTimeout(() => {
-            Stream.emit('push', 'new_shweet', {
-                msg: 'user has just shweeted',
-                author: req.user.id
-            });
-            console.log('shweet created')
-            console.log(req.user)
-        })
+
+        let user = await userModel.findById(req.user.id)
+            .populate('subscribers', 'username');
+        let subscribers = user.subscribers;
+        //Emit shweet created event.
+        eventEmitter.emit('shweet created', subscribers, shweet)
         res.status(200).json(shweet)
 
 
@@ -126,6 +121,10 @@ router.post('/shweet/create', auth, async (req, res) => {
 
 })
 
+
+// em.on('shweet created', () => {
+//     console.log('here madafaka')
+// })
 // Update Shweet.
 router.post('/shweet/update', auth, async (req, res) => {
     const errors = validationResult(req);
@@ -151,13 +150,11 @@ router.post('/shweet/update', auth, async (req, res) => {
 
             await shweet.save();
             console.log(shweet)
-            setTimeout(() => {
-                Stream.emit('push', 'update_shweet', {
-                    msg: 'user has just updated shweet',
-                    author: req.user.id
-                });
-                console.log('shweet updated')
-            })
+            let user = await userModel.findById(req.user.id)
+                .populate('subscribers', 'username');
+            let subscribers = user.subscribers;
+            //Emit shweet created event.
+            eventEmitter.emit('shweet updated', subscribers, shweet)
 
             res.status(200).json(shweet)
         }
@@ -191,6 +188,11 @@ router.post('/shweet/delete/:id', auth, async (req, res) => {
             await shweet.deleteOne()
             await comments.deleteOne()
         }
+        let user = await userModel.findById(req.user.id)
+            .populate('subscribers', 'username');
+        let subscribers = user.subscribers;
+        //Emit shweet created event.
+        eventEmitter.emit('shweet deleted', subscribers, req.params.id)
         res.status(200).json('done')
     } catch (e) {
         res.status(500).json('error fetching')
@@ -202,7 +204,11 @@ router.post('/shweet/delete/:id', auth, async (req, res) => {
 router.post('/shweet/like', auth, async (req, res) => {
     try {
         let id = req.body.shweet_id;
-        let user = req.user.id;
+        let userId = req.user.id;
+        let user = await userModel.findById(userId)
+            .populate('subscribers', 'username');
+        let subscribers = user.subscribers;
+
         // console.log(id)
         // console.log(user)
         let shweet = await shweetModel.findById(id)
@@ -212,26 +218,21 @@ router.post('/shweet/like', auth, async (req, res) => {
 
         let likers = shweet.likes;
         // console.log(likers)
-        if (likers.includes(user)) {
-            let index = likers.indexOf(user)
+        if (likers.includes(userId)) {
+            let index = likers.indexOf(userId)
             likers.splice(index, 1)
             shweet.likes = likers;
             await shweet.save()
+
             res.status(200).json({shweet, action: 'unliked'})
         } else {
-            likers.push(user);
+            likers.push(userId);
             shweet.likes = likers;
             await shweet.save()
             res.status(200).json({shweet, action: 'liked'})
         }
-        setTimeout(() => {
-            Stream.emit('push', 'shweet_likes_update', {
-                msg: 'shweet likes just updated.',
-                author: req.user.id,
-                shweet: shweet
-            });
-            console.log('shweet likes changed')
-        })
+        //Emit shweet created event.
+        eventEmitter.emit('shweet likes changed', subscribers, shweet)
 
     } catch (e) {
         res.status(500).json('server error')
@@ -239,36 +240,6 @@ router.post('/shweet/like', auth, async (req, res) => {
     }
 
 })
-
-// Make connection for events.
-router.get('/events', auth, async (req, res) => {
-    try {
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive'
-        });
-
-        Stream.on('push', (event, data) => {
-            res.write('event: ' + String(event) + '\n' + 'data: ' + JSON.stringify(data) + '\n\n');
-        });
-
-        setTimeout(() => {
-            Stream.emit('push', 'status', {
-                msg: 'connection established!'
-            });
-            console.log(`${req.user.id} Connection started`)
-        });
-
-        req.on('close', () => {
-            console.log(`${req.user.id} Connection closed`)
-        })
-
-    } catch (e) {
-        console.log(e)
-    }
-
-});
 
 
 module.exports = router;
