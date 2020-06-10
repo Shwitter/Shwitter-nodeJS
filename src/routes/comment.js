@@ -4,8 +4,8 @@ const router = express.Router();
 const auth = require('../middleware/auth')
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
-const EventEmitter = require('events');
-const Stream = new EventEmitter();
+const eventEmitter = require('../class/eventEmitter')
+const userModel = require('../models/userModel')
 
 // Create comment.
 router.post('/create', auth, async (req, res) => {
@@ -39,15 +39,11 @@ router.post('/create', auth, async (req, res) => {
             .populate('comments.author', 'username avatar');
         res.status(200).json(response);
 
-        setTimeout(() => {
-            Stream.emit('push', 'shweet_comments_update', {
-                msg: 'shweet comments just created.',
-                author: req.user.id,
-                comments_id: comments._id
-                //TODO
-            });
-            console.log('shweet comments changed')
-        })
+        let user = await userModel.findById(req.user.id)
+            .populate('subscribers', 'username');
+        let subscribers = user.subscribers;
+        //Emit comments created event.
+        eventEmitter.emit('shweet comments added', subscribers, response)
 
     } catch (e) {
         console.error(e)
@@ -87,15 +83,13 @@ router.post('/update', auth, async (req, res) => {
 
                     res.status(200).json(response);
 
-                    setTimeout(() => {
-                        Stream.emit('push', 'shweet_comments_update', {
-                            msg: 'shweet comments just updated.',
-                            author: req.user.id,
-                            comments_id: comments._id
-                            //TODO
-                        });
-                        console.log('shweet comments updated')
-                    })
+                    let user = await userModel.findById(req.user.id)
+                        .populate('subscribers', 'username');
+                    let subscribers = user.subscribers;
+                    console.log(subscribers, response)
+                    //Emit comments edit event.
+                    eventEmitter.emit('shweet comments changed', subscribers, response)
+
                 } else {
                     res.status(403).json('Permission denied')
                 }
@@ -108,7 +102,7 @@ router.post('/update', auth, async (req, res) => {
 })
 
 // Delete Comment
-router.delete('/comment/:id', auth, async (req, res) => {
+router.post('/delete/:id', auth, async (req, res) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -135,15 +129,12 @@ router.delete('/comment/:id', auth, async (req, res) => {
 
                     res.status(200).json(response);
 
-                    setTimeout(() => {
-                        Stream.emit('push', 'shweet_comments_update', {
-                            msg: 'shweet comments just deleted.',
-                            author: req.user.id,
-                            comments_id: comments._id
-                            //TODO
-                        });
-                        console.log('shweet comments deleted')
-                    })
+                    let user = await userModel.findById(req.user.id)
+                        .populate('subscribers', 'username');
+                    let subscribers = user.subscribers;
+                    console.log(subscribers, response)
+                    //Emit comment deleted event.
+                    eventEmitter.emit('shweet comments deleted', subscribers, response)
                 } else {
                     res.status(403).json('Permission denied')
                 }
