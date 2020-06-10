@@ -52,7 +52,7 @@ router.get('/shweets', auth, async (req, res) => {
     try {
         let shweets = {};
         // Merge shweets with it's own comments, get only subscribed shweets.
-        shweets = await shweetModel.find({author: {"$ne": req.user.id}}, (err, shweets) => {
+        shweets = await shweetModel.find({}, (err, shweets) => { //author: {"$ne": req.user.id}
             console.log(shweets)
             return shweets
         }).populate('comments')
