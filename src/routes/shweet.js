@@ -5,22 +5,23 @@ const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
 const userModel = require("../models/userModel");
 const auth = require('../middleware/auth')
-const eventEmitter = require('../class/eventEmitter')
-const multer = require('multer');
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './public/shweet');
-    },
-    filename: function (req, file, cb) {
-        cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
-    }
-})
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 1024 * 1024 * 5
-    }
-})
+const eventEmitter = require('../lib/eventEmitter')
+
+// const multer = require('multer');
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, './public/shweet');
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
+//     }
+// })
+// const upload = multer({
+//     storage: storage,
+//     limits: {
+//         fileSize: 1024 * 1024 * 5
+//     }
+// })
 // const Stream = new EventEmitter();
 
 
@@ -30,13 +31,20 @@ router.get('/subscribed-shweets', auth, async (req, res) => {
         let shweets = {};
         let user = await userModel.findById(req.user.id);
         let subscribes = user.subscribes;
+        let neededShweets = subscribes;
+        neededShweets.push(req.user.id);
         // Merge shweets with it's own comments, get only subscribed shweets.
-        shweets = await shweetModel.find({author: {"$in": subscribes}}, (err, shweets) => {
+        shweets = await shweetModel.find({author: {"$in": neededShweets}}, (err, shweets) => {
             console.log(shweets)
             return shweets
-        }).populate('comments')
-            .populate('likes', 'username')
-            .populate('author', 'username');
+        })
+            .populate('likes', 'username avatar')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            })
+            .populate('author', 'username avatar');
+
 
         console.log(user.id)
         res.status(200).json(shweets)
@@ -51,13 +59,15 @@ router.get('/subscribed-shweets', auth, async (req, res) => {
 router.get('/shweets', auth, async (req, res) => {
     try {
         let shweets = {};
-        // Merge shweets with it's own comments, get only subscribed shweets.
-        shweets = await shweetModel.find({}, (err, shweets) => { //author: {"$ne": req.user.id}
-            console.log(shweets)
-            return shweets
-        }).populate('comments')
-            .populate('likes', 'username')
-            .populate('author', 'username');
+
+        // Merge shweets with it's own comments.
+        shweets = await shweetModel.find()
+            .populate('likes', 'username avatar')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            })
+            .populate('author', 'username avatar');
 
         res.status(200).json(shweets)
 
@@ -71,7 +81,10 @@ router.get('/shweets', auth, async (req, res) => {
 router.get('/shweet/:id', auth, async (req, res) => {
     try {
         let shweet = await shweetModel.findById(req.params.id)
-            .populate('comments')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            })
             .populate('likes', 'username');
         if (!shweet) res.status(400).json('Shweet not found');
         res.status(200).json(shweet)
@@ -106,12 +119,23 @@ router.post('/shweet/create', auth, async (req, res) => {
 
         await shweet.save();
 
+        console.log(shweet)
+
+        let response = await shweetModel.findById(shweet._id)
+            .populate('author', 'username')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            })
+        ;
+
+        console.log(response)
         let user = await userModel.findById(req.user.id)
-            .populate('subscribers', 'username');
+            .populate('author', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
-        eventEmitter.emit('shweet created', subscribers, shweet)
-        res.status(200).json(shweet)
+        eventEmitter.emit('shweet created', subscribers, response)
+        res.status(200).json(response)
 
 
     } catch (e) {
@@ -139,14 +163,20 @@ router.post('/shweet/update', auth, async (req, res) => {
     try {
 
         let newData = req.body;
-        let shweet = await shweetModel.findById(req.body._id);
+        let shweet = await shweetModel.findById(req.body._id)
+            .populate('author', 'username')
+            .populate('likes', 'username avatar')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            });
         if (!shweet) res.status(400).json('Shweet not found');
         if (req.user.id.toString() === shweet.author.toString()) {
 
             shweet.body = newData.body;
             shweet.updated = Date.now();
             if (newData.shweetimage)
-            shweet.shweetimages = newData.shweetimage;
+                shweet.shweetimages = newData.shweetimage;
 
             await shweet.save();
             console.log(shweet)
@@ -204,6 +234,7 @@ router.post('/shweet/delete/:id', auth, async (req, res) => {
 router.post('/shweet/like', auth, async (req, res) => {
     try {
         let id = req.body.shweet_id;
+        let action = req.body.liked;
         let userId = req.user.id;
         let user = await userModel.findById(userId)
             .populate('subscribers', 'username');
@@ -212,24 +243,27 @@ router.post('/shweet/like', auth, async (req, res) => {
         // console.log(id)
         // console.log(user)
         let shweet = await shweetModel.findById(id)
-            .populate('comments')
-            .populate('author', 'username avatar');
+            .populate('author', 'username avatar')
+            .populate({
+                path: 'comments',
+                populate: {path: 'comments.author', select: 'username avatar'}
+            });
         if (!shweet) res.status(200).json('Could not find shweet');
 
         let likers = shweet.likes;
         // console.log(likers)
-        if (likers.includes(userId)) {
+        if (action) {
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
             shweet.likes = likers;
             await shweet.save()
 
-            res.status(200).json({shweet, action: 'unliked'})
+            res.status(200).json({shweet})
         } else {
             likers.push(userId);
             shweet.likes = likers;
             await shweet.save()
-            res.status(200).json({shweet, action: 'liked'})
+            res.status(200).json({shweet})
         }
         //Emit shweet created event.
         eventEmitter.emit('shweet likes changed', subscribers, shweet)

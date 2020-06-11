@@ -6,20 +6,20 @@ let router = express.Router();
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
 const multer = require('multer');
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './public/user');
-    },
-    filename: function (req, file, cb) {
-        cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
-    }
-})
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 1024 * 1024 * 5
-    }
-})
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, './public/user');
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
+//     }
+// })
+// const upload = multer({
+//     storage: storage,
+//     limits: {
+//         fileSize: 1024 * 1024 * 5
+//     }
+// })
 
 router.post('/register', async (req, res) => {
     const username = req.body.username;
@@ -208,6 +208,7 @@ router.post("/subscribe", auth, async (req, res) => {
     }
     let id = req.body.user_id;
     let user = req.user.id;
+    let subscribed = req.body.subscribed;
     if (id === user) res.status(404).json('Could not find user');
     if (user !== id) {
         try {
@@ -218,7 +219,7 @@ router.post("/subscribe", auth, async (req, res) => {
             let subscribes = user1.subscribes;
             let subscribers = user2.subscribers;
 
-            if (subscribes.includes(id)) {
+            if (subscribed) {
                 let index = subscribes.indexOf(id);
                 subscribes.splice(index, 1);
                 user1.subscribes = subscribes;

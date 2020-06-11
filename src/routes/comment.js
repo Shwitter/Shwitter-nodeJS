@@ -4,7 +4,7 @@ const router = express.Router();
 const auth = require('../middleware/auth')
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
-const eventEmitter = require('../class/eventEmitter')
+const eventEmitter = require('../lib/eventEmitter')
 const userModel = require('../models/userModel')
 
 // Create comment.

@@ -1,7 +1,7 @@
 const userModel = require("../models/userModel");
 const chatModel = require("../models/chatModel")
 const jwtDecode = require('jwt-decode');
-const eventEmitter = require("./src/class/eventEmitter")
+const eventEmitter = require("./eventEmitter")
 
 let users = {};
 
