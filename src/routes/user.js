@@ -219,7 +219,19 @@ router.post("/subscribe", auth, async (req, res) => {
             let subscribes = user1.subscribes;
             let subscribers = user2.subscribers;
 
-            if (subscribed) {
+            if (subscribed === true) {
+                user1.subscribes.push(id);
+                await user1.save();
+
+                user2.subscribers.push(user);
+                await user2.save();
+                let result = await userModel.findById(user)
+                    .select('subscribes subscribers username email avatar')
+                    .populate('subscribes', 'username avatar')
+                    .populate('subscribers', 'username avatar');
+
+                res.status(200).json({result, action: 'subscribed'})
+            } else if (subscribed === false) {
                 let index = subscribes.indexOf(id);
                 subscribes.splice(index, 1);
                 user1.subscribes = subscribes;
@@ -233,20 +245,10 @@ router.post("/subscribe", auth, async (req, res) => {
                     .select('subscribes subscribers username email avatar')
                     .populate('subscribes', 'username avatar')
                     .populate('subscribers', 'username avatar');
+                res.status(200).json({result, action: 'unsubscribed'});
 
-                res.status(200).json({ result, action: 'ubsubscribed'})
             } else {
-                user1.subscribes.push(id);
-                await user1.save();
-
-                user2.subscribers.push(user);
-                await user2.save();
-                let result = await userModel.findById(user)
-                    .select('subscribes subscribers username email avatar')
-                    .populate('subscribes', 'username avatar')
-                    .populate('subscribers', 'username avatar');
-                res.status(200).json({result, action: 'subscribed'});
-
+                res.status(400).json('Missing action.')
             }
 
         } catch (e) {
@@ -256,7 +258,7 @@ router.post("/subscribe", auth, async (req, res) => {
     }
 })
 
-router.get('/userlist' , function (req , res) {
+router.get('/userlist', function (req, res) {
     // console.log("aa");
     userModel.find({}).select('username').then(function (users) {
         res.send(users);

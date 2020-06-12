@@ -251,8 +251,13 @@ router.post('/shweet/like', auth, async (req, res) => {
         if (!shweet) res.status(200).json('Could not find shweet');
 
         let likers = shweet.likes;
-        // console.log(likers)
-        if (action) {
+        if (action === true) {
+            likers.push(userId);
+            shweet.likes = likers;
+            await shweet.save()
+
+            res.status(200).json({shweet})
+        } else if (action === false){
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
             shweet.likes = likers;
@@ -260,10 +265,7 @@ router.post('/shweet/like', auth, async (req, res) => {
 
             res.status(200).json({shweet})
         } else {
-            likers.push(userId);
-            shweet.likes = likers;
-            await shweet.save()
-            res.status(200).json({shweet})
+            res.status(400).json('Missing action.')
         }
         //Emit shweet created event.
         eventEmitter.emit('shweet likes changed', subscribers, shweet)
