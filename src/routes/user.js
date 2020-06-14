@@ -226,11 +226,14 @@ router.post("/subscribe", auth, async (req, res) => {
                 user2.subscribers.push(user);
                 await user2.save();
                 let result = await userModel.findById(user)
+                    .lean()
                     .select('subscribes subscribers username email avatar')
                     .populate('subscribes', 'username avatar')
-                    .populate('subscribers', 'username avatar');
+                    .populate('subscribers', 'username avatar')
+                    .exec();
 
-                res.status(200).json({result, action: 'subscribed'})
+                result.subscribed = true
+                res.status(200).json(result)
             } else if (subscribed === false) {
                 let index = subscribes.indexOf(id);
                 subscribes.splice(index, 1);
@@ -242,10 +245,15 @@ router.post("/subscribe", auth, async (req, res) => {
                 user2.subscribers = subscribers;
                 await user2.save();
                 let result = await userModel.findById(user)
+                    .lean()
                     .select('subscribes subscribers username email avatar')
                     .populate('subscribes', 'username avatar')
-                    .populate('subscribers', 'username avatar');
-                res.status(200).json({result, action: 'unsubscribed'});
+                    .populate('subscribers', 'username avatar')
+                    .exec();
+                result.subscribed = false
+                console.log(result)
+
+                res.status(200).json(result);
 
             } else {
                 res.status(400).json('Missing action.')

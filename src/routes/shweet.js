@@ -255,15 +255,34 @@ router.post('/shweet/like', auth, async (req, res) => {
             likers.push(userId);
             shweet.likes = likers;
             await shweet.save()
+            let result = await shweetModel.findById(id)
+                .lean()
+                .populate('author', 'username avatar')
+                .populate({
+                    path: 'comments',
+                    populate: {path: 'comments.author', select: 'username avatar'}
+                })
+                .exec();
 
-            res.status(200).json({shweet})
+            result.liked = true;
+            res.status(200).json(result)
         } else if (action === false){
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
             shweet.likes = likers;
             await shweet.save()
 
-            res.status(200).json({shweet})
+            let result = await shweetModel.findById(id)
+                .lean()
+                .populate('author', 'username avatar')
+                .populate({
+                    path: 'comments',
+                    populate: {path: 'comments.author', select: 'username avatar'}
+                })
+                .exec();
+            result.liked = false;
+
+            res.status(200).json(result)
         } else {
             res.status(400).json('Missing action.')
         }
