@@ -131,7 +131,7 @@ router.post('/shweet/create', auth, async (req, res) => {
 
         console.log(response)
         let user = await userModel.findById(req.user.id)
-            .populate('author', 'username');
+            .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
         eventEmitter.emit('shweet created', subscribers, response)
