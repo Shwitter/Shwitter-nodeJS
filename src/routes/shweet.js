@@ -38,14 +38,34 @@ router.get('/subscribed-shweets', auth, async (req, res) => {
             console.log(shweets)
             return shweets
         })
+            .lean()
             .populate('likes', 'username avatar')
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
-            .populate('author', 'username avatar');
+            .populate('author', 'username avatar')
+            .sort('-created')
+            .exec();
 
+        shweets.forEach(shweet => {
+            let BreakException = {};
+            shweet.liked = false;
+            try {
+                shweet.likes.forEach(liker => {
+                    if (shweet.liked === true)
+                        throw BreakException;
 
+                    // Check if user has liked and break loop.
+                    shweet.liked = user._id.toString() === liker._id.toString();
+                })
+            } catch (e) {
+                if (e !== BreakException) throw e;
+            }
+
+            shweet.subscribed = user.subscribes.includes(shweet.author._id);
+
+        })
         console.log(user.id)
         res.status(200).json(shweets)
 
@@ -62,13 +82,36 @@ router.get('/shweets', auth, async (req, res) => {
 
         // Merge shweets with it's own comments.
         shweets = await shweetModel.find()
+            .lean()
             .populate('likes', 'username avatar')
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
-            .populate('author', 'username avatar');
+            .populate('author', 'username avatar')
+            .sort('-created')
+            .exec();
 
+        let user = await userModel.findById(req.user.id).select('username avatar subscribes')
+        console.log(user)
+        shweets.forEach(shweet => {
+            let BreakException = {};
+            shweet.liked = false;
+            try {
+                shweet.likes.forEach(liker => {
+                    if (shweet.liked === true)
+                        throw BreakException;
+
+                    // Check if user has liked and break loop.
+                    shweet.liked = user._id.toString() === liker._id.toString();
+                })
+            } catch (e) {
+                if (e !== BreakException) throw e;
+            }
+
+            shweet.subscribed = user.subscribes.includes(shweet.author._id);
+
+        })
         res.status(200).json(shweets)
 
     } catch (e) {
@@ -266,7 +309,7 @@ router.post('/shweet/like', auth, async (req, res) => {
 
             result.liked = true;
             res.status(200).json(result)
-        } else if (action === false){
+        } else if (action === false) {
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
             shweet.likes = likers;
