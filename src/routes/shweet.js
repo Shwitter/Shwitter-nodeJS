@@ -68,6 +68,7 @@ router.get('/shweets', auth, async (req, res) => {
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
             .populate('author', 'username avatar');
+        console.log(shweets);
 
         res.status(200).json(shweets)
 
@@ -134,7 +135,7 @@ router.post('/shweet/create', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
-        eventEmitter.emit('shweet created', subscribers, response)
+        eventEmitter.emit('shweet-created', subscribers, response)
         res.status(200).json(response)
 
 
@@ -184,7 +185,7 @@ router.post('/shweet/update', auth, async (req, res) => {
                 .populate('subscribers', 'username');
             let subscribers = user.subscribers;
             //Emit shweet created event.
-            eventEmitter.emit('shweet updated', subscribers, shweet)
+            // eventEmitter.emit('shweet-updated', subscribers, shweet)
 
             res.status(200).json(shweet)
         }
@@ -222,7 +223,7 @@ router.post('/shweet/delete/:id', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
-        eventEmitter.emit('shweet deleted', subscribers, req.params.id)
+        // eventEmitter.emit('shweet-deleted', subscribers, req.params.id)
         res.status(200).json('done')
     } catch (e) {
         res.status(500).json('error fetching')
@@ -287,7 +288,7 @@ router.post('/shweet/like', auth, async (req, res) => {
             res.status(400).json('Missing action.')
         }
         //Emit shweet created event.
-        eventEmitter.emit('shweet likes changed', subscribers, shweet)
+        eventEmitter.emit('shweet-likes-changed', subscribers, shweet)
 
     } catch (e) {
         res.status(500).json('server error')
