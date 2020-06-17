@@ -43,7 +43,7 @@ router.post('/create', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit comments created event.
-        eventEmitter.emit('shweet comments added', subscribers, response)
+        eventEmitter.emit('shweet-comments-added', subscribers, response)
 
     } catch (e) {
         console.error(e)
@@ -88,7 +88,7 @@ router.post('/update', auth, async (req, res) => {
                     let subscribers = user.subscribers;
                     console.log(subscribers, response)
                     //Emit comments edit event.
-                    eventEmitter.emit('shweet comments changed', subscribers, response)
+                    // eventEmitter.emit('shweet-comments-changed', subscribers, response)
 
                 } else {
                     res.status(403).json('Permission denied')
@@ -134,7 +134,7 @@ router.post('/delete/:id', auth, async (req, res) => {
                     let subscribers = user.subscribers;
                     console.log(subscribers, response)
                     //Emit comment deleted event.
-                    eventEmitter.emit('shweet comments deleted', subscribers, response)
+                    // eventEmitter.emit('shweet comments deleted', subscribers, response)
                 } else {
                     res.status(403).json('Permission denied')
                 }
