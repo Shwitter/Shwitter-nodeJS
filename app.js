@@ -11,6 +11,7 @@ const app = express();
 const userRouter = require("./src/routes/user");
 const shweetRouter = require("./src/routes/shweet");
 const commentRouter = require("./src/routes/comment");
+const notificationRouter = require("./src/routes/notification");
 
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { origins: '*:*'});
@@ -45,6 +46,7 @@ db.once('open', () => console.log('Connected to Mongoose'))
 app.use('/user', userRouter);
 app.use(shweetRouter);
 app.use('/comment', commentRouter);
+app.use('/notification', notificationRouter);
 
 app.get('/', function (req, res) {
     res.send('Shwitter api is working!')

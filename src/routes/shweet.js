@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
+const notificationModel = require('../models/notificationModel');
 const userModel = require("../models/userModel");
 const auth = require('../middleware/auth')
 const eventEmitter = require('../lib/eventEmitter')
@@ -104,8 +105,8 @@ router.post('/shweet/create', auth, async (req, res) => {
         let shweetComments = new commentModel({
             comments: []
         });
-        console.log(shweetComments)
-        console.log(shweetComments.comments)
+        // console.log(shweetComments)
+        // console.log(shweetComments.comments)
         shweetComments.save()
 
         let shweet = new shweetModel({
@@ -119,7 +120,7 @@ router.post('/shweet/create', auth, async (req, res) => {
 
         await shweet.save();
 
-        console.log(shweet)
+        // console.log(shweet)
 
         let response = await shweetModel.findById(shweet._id)
             .populate('author', 'username')
@@ -129,12 +130,24 @@ router.post('/shweet/create', auth, async (req, res) => {
             })
         ;
 
-        console.log(response)
+        // console.log(response)
         let user = await userModel.findById(req.user.id)
-            .populate('author', 'username');
+            .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
         eventEmitter.emit('shweet created', subscribers, response)
+
+        //Create and save notification into database
+        subscribers.forEach((value, key) => {
+            let notification = new notificationModel({
+                invoker: response.author._id,
+                receiver: value._id,
+                shwitt_id: response._id,
+                type: "shwitte",
+                status: false
+            });
+            notification.save();
+        })
         res.status(200).json(response)
 
 
@@ -145,10 +158,6 @@ router.post('/shweet/create', auth, async (req, res) => {
 
 })
 
-
-// em.on('shweet created', () => {
-//     console.log('here madafaka')
-// })
 // Update Shweet.
 router.post('/shweet/update', auth, async (req, res) => {
     const errors = validationResult(req);
@@ -240,8 +249,6 @@ router.post('/shweet/like', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
 
-        // console.log(id)
-        // console.log(user)
         let shweet = await shweetModel.findById(id)
             .populate('author', 'username avatar')
             .populate({
@@ -263,6 +270,16 @@ router.post('/shweet/like', auth, async (req, res) => {
                     populate: {path: 'comments.author', select: 'username avatar'}
                 })
                 .exec();
+
+            //Create and save notification into database
+            let notification = new notificationModel({
+                invoker: user._id,
+                receiver: result.author._id,
+                type: "liked",
+                shwitt_id: result._id,
+                status: false
+            });
+            notification.save();
 
             result.liked = true;
             res.status(200).json(result)

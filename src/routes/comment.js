@@ -4,14 +4,14 @@ const router = express.Router();
 const auth = require('../middleware/auth')
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
-const eventEmitter = require('../lib/eventEmitter')
-const userModel = require('../models/userModel')
+const eventEmitter = require('../lib/eventEmitter');
+const userModel = require('../models/userModel');
+const notificationModel = require('../models/notificationModel');
 
 // Create comment.
 router.post('/create', auth, async (req, res) => {
     const errors = validationResult(req);
 
-    console.log(req.body)
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
@@ -19,7 +19,6 @@ router.post('/create', auth, async (req, res) => {
     }
 
     try {
-        console.log(req.body.comment_id)
         let comments = await commentModel.findById(req.body.comment_id);
         if (!comments) res.status(400).json('comments not found, might be wrong comments id');
         let newComment = {
@@ -28,11 +27,8 @@ router.post('/create', auth, async (req, res) => {
             created: Date.now(),
             updated: Date.now()
         }
-        console.log(req.user.id)
 
         comments.comments.push(newComment)
-
-        console.log(comments)
         await comments.save()
 
         let response = await commentModel.findById(req.body.comment_id)
@@ -44,6 +40,18 @@ router.post('/create', auth, async (req, res) => {
         let subscribers = user.subscribers;
         //Emit comments created event.
         eventEmitter.emit('shweet comments added', subscribers, response)
+
+        //TODO:: xonelam unda gamoagzavnos shweetis id da mandedan amoigeb shweetis avtors.
+        console.log("anano", response);
+        // //Create and save notification into database
+        // let notification = new notificationModel({
+        //     invoker: user._id,
+        //     receiver: result.author._id,
+        //     type: "liked",
+        //     shwitt_id: result._id,
+        //     status: false
+        // });
+        // notification.save();
 
     } catch (e) {
         console.error(e)

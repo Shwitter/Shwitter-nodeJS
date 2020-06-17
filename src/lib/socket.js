@@ -1,5 +1,6 @@
 const userModel = require("../models/userModel");
 const chatModel = require("../models/chatModel")
+const notificationModel = require("../models/notificationModel")
 const jwtDecode = require('jwt-decode');
 const eventEmitter = require("./eventEmitter")
 
@@ -160,6 +161,19 @@ module.exports = function (io) {
                 if (users[value.username])
                     users[value.username].emit('shweet comments deleted', { comments: comments })
             })
+        })
+
+        socket.on('notification-count', function (data) {
+            let jwt = data.jwt;
+            let decodedJwt = jwtDecode(jwt);
+            let id = decodedJwt.user.id;
+            notificationModel.find({receiver: id, status: false}).then(function (doc) {
+                let length = doc.length;
+                userModel.findById(id).then(function (data) {
+                    users[data.username].emit('notification-count', {count: length})
+                });
+            });
+
         })
 
         socket.on("disconnect", function (data) {

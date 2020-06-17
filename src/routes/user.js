@@ -1,11 +1,11 @@
 const {check, validationResult} = require("express-validator");
 const userModel = require("../models/userModel");
+const notificationModel = require("../models/notificationModel");
 const bcrypt = require('bcrypt');
 let express = require("express");
 let router = express.Router();
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
-const multer = require('multer');
 // const storage = multer.diskStorage({
 //     destination: function (req, file, cb) {
 //         cb(null, './public/user');
@@ -232,6 +232,16 @@ router.post("/subscribe", auth, async (req, res) => {
                     .populate('subscribers', 'username avatar')
                     .exec();
 
+                //Create and save notification into database
+                let notification = new notificationModel({
+                    invoker: user,
+                    receiver: id,
+                    type: "subscribe",
+                    shwitt_id: null,
+                    status: false
+                });
+                await notification.save();
+
                 result.subscribed = true
                 res.status(200).json(result)
             } else if (subscribed === false) {
@@ -251,7 +261,16 @@ router.post("/subscribe", auth, async (req, res) => {
                     .populate('subscribers', 'username avatar')
                     .exec();
                 result.subscribed = false
-                console.log(result)
+
+                //Create and save notification into database
+                let notification = new notificationModel({
+                    invoker: user,
+                    receiver: id,
+                    type: "unsubscribe",
+                    shwitt_id: null,
+                    status: false
+                });
+                await notification.save();
 
                 res.status(200).json(result);
 
