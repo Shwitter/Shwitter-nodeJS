@@ -41,17 +41,18 @@ router.post('/create', auth, async (req, res) => {
         //Emit comments created event.
         eventEmitter.emit('on-comment-add', subscribers, response)
 
-        //TODO:: xonelam unda gamoagzavnos shweetis id da mandedan amoigeb shweetis avtors.
-        console.log("anano", response);
-        // //Create and save notification into database
-        // let notification = new notificationModel({
-        //     invoker: user._id,
-        //     receiver: result.author._id,
-        //     type: "liked",
-        //     shwitt_id: result._id,
-        //     status: false
-        // });
-        // notification.save();
+        let shweet = await shweetModel.findById(req.body.shwitt_id);
+
+        //Create and save notification into database
+        let notification = new notificationModel({
+            invoker: user._id,
+            receiver: shweet.author,
+            invokerUsername: user.username,
+            type: "liked",
+            shwitt_id: req.body.shwitt_id,
+            status: false
+        });
+        notification.save();
 
     } catch (e) {
         console.error(e)
