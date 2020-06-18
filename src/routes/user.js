@@ -122,7 +122,6 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (e) {
-        console.error(e);
         res.status(500).json({
             message: "Server Error"
         });
@@ -286,7 +285,6 @@ router.post("/subscribe", auth, async (req, res) => {
 })
 
 router.get('/userlist', function (req, res) {
-    // console.log("aa");
     userModel.find({}).select('username').then(function (users) {
         res.send(users);
     });

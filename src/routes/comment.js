@@ -39,7 +39,7 @@ router.post('/create', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit comments created event.
-        eventEmitter.emit('shweet comments added', subscribers, response)
+        eventEmitter.emit('on-comment-add', subscribers, response)
 
         //TODO:: xonelam unda gamoagzavnos shweetis id da mandedan amoigeb shweetis avtors.
         console.log("anano", response);
@@ -94,9 +94,8 @@ router.post('/update', auth, async (req, res) => {
                     let user = await userModel.findById(req.user.id)
                         .populate('subscribers', 'username');
                     let subscribers = user.subscribers;
-                    console.log(subscribers, response)
                     //Emit comments edit event.
-                    eventEmitter.emit('shweet comments changed', subscribers, response)
+                    // eventEmitter.emit('shweet-comments-changed', subscribers, response)
 
                 } else {
                     res.status(403).json('Permission denied')
@@ -120,7 +119,6 @@ router.post('/delete/:id', auth, async (req, res) => {
     }
 
     try {
-        console.log(req.params.id)
         let comments = await commentModel.findById(req.body.comments_id);
         if (!comments) res.status(400).json('Comments not found');
 
@@ -140,9 +138,6 @@ router.post('/delete/:id', auth, async (req, res) => {
                     let user = await userModel.findById(req.user.id)
                         .populate('subscribers', 'username');
                     let subscribers = user.subscribers;
-                    console.log(subscribers, response)
-                    //Emit comment deleted event.
-                    eventEmitter.emit('shweet comments deleted', subscribers, response)
                 } else {
                     res.status(403).json('Permission denied')
                 }
