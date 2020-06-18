@@ -19,6 +19,12 @@ module.exports = function (io) {
                 // to defined receiver in private messaging.
                 users[socket.username] = socket;
             });
+            notificationModel.find({receiver: id, status: false}).then(function (doc) {
+                if(doc.length>0){
+                    socket.emit('notifications-count', doc.length);
+                }
+            })
+
 
         })
 
@@ -103,8 +109,9 @@ module.exports = function (io) {
         //Send shweet created event to logged in users.
         eventEmitter.on('on-shweet-create', (subscribers, shweet) => {
             subscribers.forEach((value, key) => {
-                if (users[value.username])
+                if (users[value.username]) {
                     users[value.username].emit('shweet-created', {shweet: shweet})
+                }
             })
         })
 
@@ -157,9 +164,9 @@ module.exports = function (io) {
             let id = decodedJwt.user.id;
             notificationModel.find({invoker: id, status: false}).then(function (doc) {
                 let length = doc.length;
-                // userModel.findById(id).then(function (data) {
+                userModel.findById(doc.sender).then(function (data) {
                     users[doc.sender].emit('notification-count', {count: length})
-                // });
+                });
             });
 
         })
