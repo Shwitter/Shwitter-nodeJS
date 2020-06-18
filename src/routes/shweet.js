@@ -172,12 +172,12 @@ router.post('/shweet/create', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit shweet created event.
-        eventEmitter.emit('on-shweet-creat', subscribers, response)
-
+        eventEmitter.emit('on-shweet-create', subscribers, response)
         //Create and save notification into database
         subscribers.forEach((value, key) => {
             let notification = new notificationModel({
                 invoker: response.author._id,
+                invokerUsername: response.author.username,
                 receiver: value._id,
                 shwitt_id: response._id,
                 type: "shwitte",
@@ -305,6 +305,7 @@ router.post('/shweet/like', auth, async (req, res) => {
             //Create and save notification into database
             let notification = new notificationModel({
                 invoker: user._id,
+                invokerUsername: user.username,
                 receiver: result.author._id,
                 type: "liked",
                 shwitt_id: result._id,

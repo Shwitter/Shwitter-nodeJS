@@ -18,7 +18,10 @@ const notificationSchema = new mongoose.Schema({
     },
     status: {
         type: Boolean
-    }
+    },
+    invokerUsername: {
+        type: String
+    },
 
 });
 
