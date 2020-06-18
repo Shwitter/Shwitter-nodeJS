@@ -265,7 +265,7 @@ router.post("/subscribe", auth, async (req, res) => {
                 //Create and save notification into database
                 let notification = new notificationModel({
                     invoker: user,
-                    invoker: user.username,
+                    invokerUsername: user.username,
                     receiver: id,
                     type: "unsubscribe",
                     shwitt_id: null,
