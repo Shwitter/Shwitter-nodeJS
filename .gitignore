@@ -29,3 +29,10 @@ yarn-error.log*
 
 .idea/*
 .ash_history
+
+public/shweet/*
+!public/shweet/.gitkeep
+
+public/user/*
+!public/user/.gitkeep
+.env

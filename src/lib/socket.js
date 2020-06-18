@@ -1,6 +1,7 @@
 const userModel = require("../models/userModel");
 const chatModel = require("../models/chatModel")
 const jwtDecode = require('jwt-decode');
+const eventEmitter = require("./eventEmitter")
 
 let users = {};
 
@@ -98,8 +99,56 @@ module.exports = function (io) {
 
         });
 
+        //Send shweet created event to logged in users.
+        eventEmitter.on('on-shweet-creat', (subscribers, shweet) => {
+            subscribers.forEach((value, key) => {
+                if (users[value.username])
+                    users[value.username].emit('shweet-created', {shweet: shweet})
+            })
+        })
 
+        // //Send shweet deleted event to logged in users.
+        // eventEmitter.on('shweet deleted', (subscribers, shweetId) => {
+        //     // console.log(subscribers, shweetId)
+        //     subscribers.forEach((value, key) => {
+        //         if (users[value.username])
+        //             users[value.username].emit('shweet deleted', { shweetId: shweetId })
+        //     })
+        // })
 
+        //Send shweet likes changed event to logged in users.
+        eventEmitter.on('on-like-change', (subscribers, shweet) => {
+            subscribers.forEach((value, key) => {
+                if (users[value.username])
+                    users[value.username].emit('shweet-likes-changed', { shweet: shweet })
+            })
+        })
+
+        //Send shweet comments added event to logged in users.
+        eventEmitter.on('on-comment-add', (subscribers, comments) => {
+            subscribers.forEach((value, key) => {
+                if (users[value.username])
+                    users[value.username].emit('shweet-comments-added', { comments: comments })
+            })
+        })
+
+        // //Send shweet comments changed event to logged in users.
+        // eventEmitter.on('shweet comments changed', (subscribers, comments) => {
+        //     console.log(subscribers, comments)
+        //     subscribers.forEach((value, key) => {
+        //         if (users[value.username])
+        //             users[value.username].emit('shweet comments changed', { comments: comments })
+        //     })
+        // })
+
+        // //Send shweet comments deleted event to logged in users.
+        // eventEmitter.on('shweet comments deleted', (subscribers, comments) => {
+        //     console.log(subscribers, comments)
+        //     subscribers.forEach((value, key) => {
+        //         if (users[value.username])
+        //             users[value.username].emit('shweet comments deleted', { comments: comments })
+        //     })
+        // })
 
         socket.on("disconnect", function (data) {
             if (!socket.username) return;

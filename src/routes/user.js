@@ -1,10 +1,25 @@
-const { check, validationResult } = require("express-validator");
+const {check, validationResult} = require("express-validator");
 const userModel = require("../models/userModel");
 const bcrypt = require('bcrypt');
 let express = require("express");
 let router = express.Router();
 const jwt = require("jsonwebtoken");
-const auth = require("../middleware/auth");
+const auth = require("../middleware/auth")
+const multer = require('multer');
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, './public/user');
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, new Date().toISOString() + '_' + file.originalname.replace(/ /g, '_'));
+//     }
+// })
+// const upload = multer({
+//     storage: storage,
+//     limits: {
+//         fileSize: 1024 * 1024 * 5
+//     }
+// })
 
 router.post('/register', async (req, res) => {
     const username = req.body.username;
@@ -31,7 +46,8 @@ router.post('/register', async (req, res) => {
         user = new userModel({
             username: username,
             email: email,
-            password: bcrypt.hashSync(password, 10)
+            password: bcrypt.hashSync(password, 10),
+            avatar: 'public/avatar.png'
         });
 
         await user.save();
@@ -106,10 +122,26 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (e) {
-        console.error(e);
         res.status(500).json({
             message: "Server Error"
         });
+    }
+})
+
+// Update user.
+router.post("/update", auth, async (req, res) => {
+    try {
+        let user = await userModel.findById(req.user.id);
+        let file = req.body.avatar;
+
+        if (file)
+            user.avatar = file
+
+        await user.save();
+        res.status(200).json(user);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('Internal error.')
     }
 })
 
@@ -117,21 +149,34 @@ router.post('/login', async (req, res) => {
 router.get("/me", auth, async (req, res) => {
     try {
         // request.user is getting fetched from Middleware after token authentication
-        const user = await userModel.findById(req.user.id);
+        let user = await userModel.findById(req.user.id)
+            .select('subscribes subscribers username email avatar')
+            .populate('subscribes', '-password')
+            .populate('subscribers', '-password');
         res.json(user);
     } catch (e) {
-        res.send({ message: "Error in Fetching user" });
+        res.send({message: "Error in Fetching user"});
     }
 });
 
-router.post("/change-password", auth, async(req, res) => {
+//Get all users.
+router.get("/all", auth, async (req, res) => {
+    try {
+        let users = await userModel.find({}).select('username email subscribers subscribes');
+        res.status(200).json(users);
+    } catch (e) {
+        res.status(500).json('Internal error.')
+    }
+})
+
+router.post("/change-password", auth, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
         });
     }
-    try{
+    try {
         const user = await userModel.findById(req.user.id);
         const oldPass = req.body.password;
         const newPass = req.body.newpass;
@@ -140,14 +185,12 @@ router.post("/change-password", auth, async(req, res) => {
             return res.status(400).json({
                 message: "The password does not match!"
             });
-        }
-        else {
+        } else {
             user.password = bcrypt.hashSync(newPass, 10)
         }
         user.save()
         res.status(200).json("Password changed successfully.");
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e);
         res.status(500).json({
             message: "Server Error"
@@ -155,8 +198,74 @@ router.post("/change-password", auth, async(req, res) => {
     }
 })
 
-router.get('/userlist' , function (req , res) {
-    // console.log("aa");
+router.post("/subscribe", auth, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            errors: errors.array()
+        });
+    }
+    let id = req.body.user_id;
+    let user = req.user.id;
+    let subscribed = req.body.subscribed;
+    if (id === user) res.status(404).json('Could not find user');
+    if (user !== id) {
+        try {
+            let user1 = await userModel.findById(user);
+            let user2 = await userModel.findById(id);
+            if (!user2) res.status(404).json('Could not find user');
+
+            let subscribes = user1.subscribes;
+            let subscribers = user2.subscribers;
+
+            if (subscribed === true) {
+                user1.subscribes.push(id);
+                await user1.save();
+
+                user2.subscribers.push(user);
+                await user2.save();
+                let result = await userModel.findById(user)
+                    .lean()
+                    .select('subscribes subscribers username email avatar')
+                    .populate('subscribes', 'username avatar')
+                    .populate('subscribers', 'username avatar')
+                    .exec();
+
+                result.subscribed = true
+                res.status(200).json(result)
+            } else if (subscribed === false) {
+                let index = subscribes.indexOf(id);
+                subscribes.splice(index, 1);
+                user1.subscribes = subscribes;
+                await user1.save();
+
+                index = subscribers.indexOf(user);
+                subscribers.splice(index, 1);
+                user2.subscribers = subscribers;
+                await user2.save();
+                let result = await userModel.findById(user)
+                    .lean()
+                    .select('subscribes subscribers username email avatar')
+                    .populate('subscribes', 'username avatar')
+                    .populate('subscribers', 'username avatar')
+                    .exec();
+                result.subscribed = false
+                console.log(result)
+
+                res.status(200).json(result);
+
+            } else {
+                res.status(400).json('Missing action.')
+            }
+
+        } catch (e) {
+            console.log(e);
+            res.status(500).json('internal error');
+        }
+    }
+})
+
+router.get('/userlist', function (req, res) {
     userModel.find({}).select('username').then(function (users) {
         res.send(users);
     });
