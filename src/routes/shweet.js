@@ -124,12 +124,21 @@ router.get('/shweets', auth, async (req, res) => {
 router.get('/shweet/:id', auth, async (req, res) => {
     try {
         let shweet = await shweetModel.findById(req.params.id)
+            .lean()
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
-            .populate('likes', 'username');
+            .populate('likes', 'username')
+            .exec();
         if (!shweet) res.status(400).json('Shweet not found');
+
+        let likers = await shweetModel.findById(req.params.id);
+        let user = await userModel.findById(req.user.id);
+
+        shweet.liked = likers.likes.includes(req.user.id);
+        shweet.subscribed = user.subscribes.includes(shweet.author._id)
+
         res.status(200).json(shweet)
 
     } catch (e) {
