@@ -17,7 +17,9 @@ router.get("/get-notifications", auth, async (req, res) => {
             if (doc.length > 0) {
                 res.status(200).json(doc);
             } else {
-                res.status(400).json("You don't have notifications yet.");
+                res.status(200).json({
+                    'error': true
+                })
             }
         })
     } catch (e) {
