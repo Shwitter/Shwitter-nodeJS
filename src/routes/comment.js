@@ -11,7 +11,6 @@ const userModel = require('../models/userModel')
 router.post('/create', auth, async (req, res) => {
     const errors = validationResult(req);
 
-    console.log(req.body)
     if (!errors.isEmpty()) {
         return res.status(400).json({
             errors: errors.array()
@@ -19,7 +18,6 @@ router.post('/create', auth, async (req, res) => {
     }
 
     try {
-        console.log(req.body.comment_id)
         let comments = await commentModel.findById(req.body.comment_id);
         if (!comments) res.status(400).json('comments not found, might be wrong comments id');
         let newComment = {
@@ -28,11 +26,9 @@ router.post('/create', auth, async (req, res) => {
             created: Date.now(),
             updated: Date.now()
         }
-        console.log(req.user.id)
 
         comments.comments.push(newComment)
 
-        console.log(comments)
         await comments.save()
 
         let response = await commentModel.findById(req.body.comment_id)
@@ -43,7 +39,7 @@ router.post('/create', auth, async (req, res) => {
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
         //Emit comments created event.
-        eventEmitter.emit('shweet-comments-added', subscribers, response)
+        eventEmitter.emit('on-comment-add', subscribers, response)
 
     } catch (e) {
         console.error(e)
@@ -86,7 +82,6 @@ router.post('/update', auth, async (req, res) => {
                     let user = await userModel.findById(req.user.id)
                         .populate('subscribers', 'username');
                     let subscribers = user.subscribers;
-                    console.log(subscribers, response)
                     //Emit comments edit event.
                     // eventEmitter.emit('shweet-comments-changed', subscribers, response)
 
@@ -112,7 +107,6 @@ router.post('/delete/:id', auth, async (req, res) => {
     }
 
     try {
-        console.log(req.params.id)
         let comments = await commentModel.findById(req.body.comments_id);
         if (!comments) res.status(400).json('Comments not found');
 
@@ -132,9 +126,6 @@ router.post('/delete/:id', auth, async (req, res) => {
                     let user = await userModel.findById(req.user.id)
                         .populate('subscribers', 'username');
                     let subscribers = user.subscribers;
-                    console.log(subscribers, response)
-                    //Emit comment deleted event.
-                    // eventEmitter.emit('shweet comments deleted', subscribers, response)
                 } else {
                     res.status(403).json('Permission denied')
                 }

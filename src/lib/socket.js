@@ -100,7 +100,7 @@ module.exports = function (io) {
         });
 
         //Send shweet created event to logged in users.
-        eventEmitter.on('shweet-created', (subscribers, shweet) => {
+        eventEmitter.on('on-shweet-creat', (subscribers, shweet) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-created', {shweet: shweet})
@@ -117,8 +117,7 @@ module.exports = function (io) {
         // })
 
         //Send shweet likes changed event to logged in users.
-        eventEmitter.on('shweet-likes-changed', (subscribers, shweet) => {
-            console.log(subscribers, shweet)
+        eventEmitter.on('on-like-change', (subscribers, shweet) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-likes-changed', { shweet: shweet })
@@ -126,8 +125,7 @@ module.exports = function (io) {
         })
 
         //Send shweet comments added event to logged in users.
-        eventEmitter.on('shweet-comments-added', (subscribers, comments) => {
-            console.log(subscribers, comments)
+        eventEmitter.on('on-comment-add', (subscribers, comments) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-comments-added', { comments: comments })
