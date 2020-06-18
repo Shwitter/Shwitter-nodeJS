@@ -155,11 +155,11 @@ module.exports = function (io) {
             let jwt = data.jwt;
             let decodedJwt = jwtDecode(jwt);
             let id = decodedJwt.user.id;
-            notificationModel.find({receiver: id, status: false}).then(function (doc) {
+            notificationModel.find({invoker: id, status: false}).then(function (doc) {
                 let length = doc.length;
-                userModel.findById(id).then(function (data) {
-                    users[data.username].emit('notification-count', {count: length})
-                });
+                // userModel.findById(id).then(function (data) {
+                    users[doc.sender].emit('notification-count', {count: length})
+                // });
             });
 
         })
