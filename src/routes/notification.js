@@ -13,7 +13,7 @@ router.get("/get-notifications", auth, async (req, res) => {
     }
     try {
         let user = req.user.id;
-        notificationModel.find({receiver: user}).then(function (doc) {
+        notificationModel.find({receiver: user, status: false}).then(function (doc) {
             if (doc.length > 0) {
                 res.status(200).json(doc);
             } else {
@@ -36,15 +36,15 @@ router.post("/subscribe-status", auth, async (req, res) =>{
         });
     }
     try {
-        console.log(req.body);
-        //TODO:: masivi mogdis aq da shecvale logika
-
-        // let notification_id = req.body.notification_id;
-        // notificationModel.findById(notification_id).then(function (doc) {
-        //     doc.status = true;
-        //     doc.save();
-        //     res.status(200).json("success");
-        // })
+        let notificationIdArray = req.body.notification_id;
+        notificationIdArray.forEach(element => {
+            let notification_id = req.body.notification_id;
+            notificationModel.findById(notification_id).then(function (doc) {
+                doc.status = true;
+                doc.save();
+                res.status(200).json("success");
+            })
+        });
     } catch (e) {
         console.error(e);
         res.status(500).json({
