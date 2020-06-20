@@ -40,10 +40,10 @@ router.post("/subscribe-status", auth, async (req, res) =>{
     try {
         let notificationIdArray = req.body.notification_id;
         notificationIdArray.forEach(element => {
-            let notification_id = req.body.notification_id;
-            notificationModel.findById(notification_id).then(function (doc) {
+            // let notification_id = req.body.notification_id;
+            notificationModel.findById(element).then(function (doc) {
                 doc.status = true;
-                doc.save();
+                doc.save()
                 res.status(200).json("success");
             })
         });
