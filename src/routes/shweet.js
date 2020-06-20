@@ -180,8 +180,7 @@ router.post('/shweet/create', auth, async (req, res) => {
         let user = await userModel.findById(req.user.id)
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
-        //Emit shweet created event.
-        eventEmitter.emit('on-shweet-create', subscribers, response)
+
         //Create and save notification into database
         subscribers.forEach((value, key) => {
             let notification = new notificationModel({
@@ -194,6 +193,10 @@ router.post('/shweet/create', auth, async (req, res) => {
             });
             notification.save();
         })
+
+        //Emit shweet created event.
+        eventEmitter.emit('on-shweet-create', subscribers, response)
+
 
         res.status(200).json(response)
 
@@ -345,7 +348,7 @@ router.post('/shweet/like', auth, async (req, res) => {
             res.status(400).json('Missing action.')
         }
         //Emit shweet created event.
-        eventEmitter.emit('on-like-change', subscribers, shweet)
+        eventEmitter.emit('on-like-change', subscribers, shweet, action)
 
     } catch (e) {
         res.status(500).json('server error')
