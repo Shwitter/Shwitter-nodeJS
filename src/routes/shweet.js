@@ -132,6 +132,7 @@ router.get('/shweet/:id', auth, async (req, res) => {
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
             .populate('likes', 'username')
+            .populate('author', 'username avatar')
             .exec();
         if (!shweet) res.status(400).json('Shweet not found');
 

@@ -50,7 +50,7 @@ router.post('/create', auth, async (req, res) => {
             invoker: user._id,
             receiver: shweet.author,
             invokerUsername: user.username,
-            type: "liked",
+            type: "comment",
             shwitt_id: req.body.shwitt_id,
             status: false
         });
