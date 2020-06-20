@@ -135,7 +135,6 @@ module.exports = function (io) {
                 if (users[value.username])
                     users[value.username].emit('shweet-likes-changed', { shweet: shweet })
             })
-            console.log("3122222222222222222222222222222222", shweet.author)
             if (action === true) {
                 let author = shweet.author.username;
                 let id = shweet.author._id;
@@ -185,6 +184,27 @@ module.exports = function (io) {
         //     });
         //
         // })
+
+        socket.on('subscribed-notification', function (data) {
+            let username = data.username;
+            let user_id = data.user_id;
+            notificationModel.find({receiver: user_id, status: false}).then(function (data) {
+                if(data.length > 0) {
+                    users[username].emit('new-notification', {count: data.length});
+                }
+            })
+        })
+
+        socket.on('unsubscribed-notification', function (data) {
+            let username = data.username;
+            let user_id = data.user_id;
+            notificationModel.find({receiver: user_id, status: false}).then(function (data) {
+                if(data.length > 0) {
+                    users[username].emit('new-notification', {count: data.length});
+                }
+            })
+        })
+
 
         socket.on("disconnect", function (data) {
             if (!socket.username) return;
