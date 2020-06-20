@@ -192,10 +192,12 @@ router.post('/shweet/create', auth, async (req, res) => {
                 status: false
             });
             notification.save();
+        }).then(() => {
+            //Emit shweet created event.
+            eventEmitter.emit('on-shweet-create', subscribers, response);
         })
 
-        //Emit shweet created event.
-        eventEmitter.emit('on-shweet-create', subscribers, response)
+
 
 
         res.status(200).json(response)
@@ -314,6 +316,8 @@ router.post('/shweet/like', auth, async (req, res) => {
                 })
                 .exec();
 
+            eventEmitter.emit('on-like-change', subscribers, shweet, action);
+
             //Create and save notification into database
             let notification = new notificationModel({
                 invoker: user._id,
@@ -327,6 +331,8 @@ router.post('/shweet/like', auth, async (req, res) => {
 
             result.liked = true;
             res.status(200).json(result)
+            //Emit shweet created event.
+            eventEmitter.emit('on-like-change', subscribers, shweet, action);
         } else if (action === false) {
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
@@ -342,13 +348,12 @@ router.post('/shweet/like', auth, async (req, res) => {
                 })
                 .exec();
             result.liked = false;
-
+            eventEmitter.emit('on-like-change', subscribers, shweet, action);
             res.status(200).json(result)
         } else {
             res.status(400).json('Missing action.')
         }
-        //Emit shweet created event.
-        eventEmitter.emit('on-like-change', subscribers, shweet, action)
+
 
     } catch (e) {
         res.status(500).json('server error')

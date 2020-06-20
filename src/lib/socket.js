@@ -112,9 +112,9 @@ module.exports = function (io) {
                 if (users[value.username]) {
                     users[value.username].emit('shweet-created', {shweet: shweet});
                     notificationModel.find({receiver: value._id, status: false}).then(function (data) {
-                        if(data.length > 0) {
+                        // if(data.length > 0) {
                             users[value.username].emit('new-notification', {count: data.length});
-                        }
+                        // }
                     })
                 }
             })
@@ -137,7 +137,8 @@ module.exports = function (io) {
             })
             if (action === true) {
                 let author = shweet.author.username;
-                notificationModel.find({receiver: author, status: false}).then(function (data) {
+                let id = shweet.author._id;
+                notificationModel.find({receiver: id, status: false}).then(function (data) {
                     if(data.length > 0) {
                         users[author].emit('new-notification', {count: data.length});
                     }
