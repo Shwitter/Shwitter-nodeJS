@@ -38,10 +38,12 @@ router.post('/create', auth, async (req, res) => {
         let user = await userModel.findById(req.user.id)
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
-        //Emit comments created event.
-        eventEmitter.emit('on-comment-add', subscribers, response)
+
 
         let shweet = await shweetModel.findById(req.body.shwitt_id);
+
+        //Emit comments created event.
+        eventEmitter.emit('on-comment-add', subscribers, response, shweet)
 
         //Create and save notification into database
         let notification = new notificationModel({

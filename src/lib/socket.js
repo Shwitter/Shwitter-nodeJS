@@ -147,7 +147,15 @@ module.exports = function (io) {
         })
 
         //Send shweet comments added event to logged in users.
-        eventEmitter.on('on-comment-add', (subscribers, comments) => {
+        eventEmitter.on('on-comment-add', (subscribers, comments, shweet) => {
+            let author = shweet.author.username;
+            let author_id = shweet.author._id;
+            notificationModel.find({receiver: author_id, status: false}).then(function (data) {
+                if(data.length > 0 && users[author]) {
+                    users[author].emit('new-notification', {count: data.length});
+                }
+            })
+
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-comments-added', { comments: comments })
