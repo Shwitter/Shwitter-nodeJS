@@ -184,20 +184,26 @@ router.post('/shweet/create', auth, async (req, res) => {
         let subscribers = user.subscribers;
 
         //Create and save notification into database
-        subscribers.forEach((value, key) => {
-            let notification = new notificationModel({
-                invoker: response.author._id,
-                invokerUsername: response.author.username,
-                receiver: value._id,
-                shwitt_id: response._id,
-                type: "shwitte",
-                status: false
+        if(subscribers) {
+            console.log(subscribers);
+            subscribers.forEach((value, key) => {
+                let notification = new notificationModel({
+                    invoker: response.author._id,
+                    invokerUsername: response.author.username,
+                    receiver: value._id,
+                    shwitt_id: response._id,
+                    type: "shwitte",
+                    status: false
+                });
+                notification.save();
             });
-            notification.save();
-        }).then(() => {
-            //Emit shweet created event.
-            eventEmitter.emit('on-shweet-create', subscribers, response);
-        })
+
+            setTimeout(() => {
+                //Emit shweet created event.
+                eventEmitter.emit('on-shweet-create', subscribers, response);
+            },2000);
+        }
+
 
 
 

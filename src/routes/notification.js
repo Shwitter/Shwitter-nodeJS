@@ -41,11 +41,11 @@ router.post("/subscribe-status", auth, async (req, res) =>{
         let notificationIdArray = req.body.notification_id;
         notificationIdArray.forEach(element => {
             // let notification_id = req.body.notification_id;
-            notificationModel.findById(notification_id).then(function (doc) {
+            notificationModel.findById(element).then(function (doc) {
                 doc.status = true;
                 doc.save();
             }).then(function (data) {
-                notificationModel.find({receiver: req.user.id, status: true}).then(function (data) {
+                notificationModel.find({receiver: req.user.id, status: false}).then(function (data) {
                     res.status(200).json(data.length);
                 })
             })
