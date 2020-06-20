@@ -135,6 +135,7 @@ module.exports = function (io) {
                 if (users[value.username])
                     users[value.username].emit('shweet-likes-changed', { shweet: shweet })
             })
+            console.log("3122222222222222222222222222222222", shweet.author)
             if (action === true) {
                 let author = shweet.author.username;
                 let id = shweet.author._id;

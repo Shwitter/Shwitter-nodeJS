@@ -327,12 +327,13 @@ router.post('/shweet/like', auth, async (req, res) => {
                 shwitt_id: result._id,
                 status: false
             });
-            notification.save();
+            notification.save().then(() => {
+                eventEmitter.emit('on-like-change', subscribers, shweet, action);
+            });
 
             result.liked = true;
             res.status(200).json(result)
             //Emit shweet created event.
-            eventEmitter.emit('on-like-change', subscribers, shweet, action);
         } else if (action === false) {
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
