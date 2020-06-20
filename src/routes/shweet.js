@@ -69,7 +69,8 @@ router.get('/subscribed-shweets', auth, async (req, res) => {
         res.status(200).json(shweets)
 
     } catch (e) {
-        res.status(500).json('Server error')
+        res.status(500).json('Server error');
+        console.log(e);
     }
 
 });
@@ -115,7 +116,8 @@ router.get('/shweets', auth, async (req, res) => {
         res.status(200).json(shweets)
 
     } catch (e) {
-        res.status(500).json('Server error')
+        res.status(500).json('Server error');
+        console.log(e);
     }
 
 });
@@ -205,6 +207,7 @@ router.post('/shweet/create', auth, async (req, res) => {
 
     } catch (e) {
         res.status(500).send('Error in Saving')
+        console.log(e)
     }
 
 })
