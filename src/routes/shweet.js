@@ -173,11 +173,13 @@ router.post('/shweet/create', auth, async (req, res) => {
         await shweet.save();
 
         let response = await shweetModel.findById(shweet._id)
+            .lean()
             .populate('author', 'username')
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
+            .exec();
         ;
 
         let user = await userModel.findById(req.user.id)

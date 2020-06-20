@@ -108,6 +108,8 @@ module.exports = function (io) {
 
         //Send shweet created event to logged in users.
         eventEmitter.on('on-shweet-create', (subscribers, shweet) => {
+            shweet.subscribed = true;
+            console.log(shweet)
             subscribers.forEach((value, key) => {
                 if (users[value.username]) {
                     users[value.username].emit('shweet-created', {shweet: shweet});
