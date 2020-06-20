@@ -44,12 +44,13 @@ router.post("/subscribe-status", auth, async (req, res) =>{
             notificationModel.findById(element).then(function (doc) {
                 doc.status = true;
                 doc.save();
-            }).then(function (data) {
-                notificationModel.find({receiver: req.user.id, status: false}).then(function (data) {
-                    res.status(200).json(data.length);
-                })
+            });
+        });
+        setTimeout(() => {
+            notificationModel.find({receiver: req.user.id, status: false}).then(function (data) {
+                res.status(200).json(data.length);
             })
-        })
+        }, 1000);
     } catch (e) {
         console.error(e);
         res.status(500).json({
