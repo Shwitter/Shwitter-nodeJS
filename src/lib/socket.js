@@ -1,5 +1,6 @@
 const userModel = require("../models/userModel");
 const chatModel = require("../models/chatModel")
+const notificationModel = require("../models/notificationModel")
 const jwtDecode = require('jwt-decode');
 const eventEmitter = require("./eventEmitter")
 
@@ -18,6 +19,12 @@ module.exports = function (io) {
                 // to defined receiver in private messaging.
                 users[socket.username] = socket;
             });
+            notificationModel.find({receiver: id, status: false}).then(function (doc) {
+                if(doc.length>0){
+                    socket.emit('notifications-count', doc.length);
+                }
+            })
+
 
         })
 
@@ -100,10 +107,18 @@ module.exports = function (io) {
         });
 
         //Send shweet created event to logged in users.
-        eventEmitter.on('on-shweet-creat', (subscribers, shweet) => {
+        eventEmitter.on('on-shweet-create', (subscribers, shweet) => {
+            shweet.subscribed = true;
+            console.log(shweet)
             subscribers.forEach((value, key) => {
-                if (users[value.username])
-                    users[value.username].emit('shweet-created', {shweet: shweet})
+                if (users[value.username]) {
+                    users[value.username].emit('shweet-created', {shweet: shweet});
+                    notificationModel.find({receiver: value._id, status: false}).then(function (data) {
+                        // if(data.length > 0) {
+                            users[value.username].emit('new-notification', {count: data.length});
+                        // }
+                    })
+                }
             })
         })
 
@@ -117,15 +132,32 @@ module.exports = function (io) {
         // })
 
         //Send shweet likes changed event to logged in users.
-        eventEmitter.on('on-like-change', (subscribers, shweet) => {
+        eventEmitter.on('on-like-change', (subscribers, shweet, action) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-likes-changed', { shweet: shweet })
             })
+            if (action === true) {
+                let author = shweet.author.username;
+                let id = shweet.author._id;
+                notificationModel.find({receiver: id, status: false}).then(function (data) {
+                    if(data.length > 0) {
+                        users[author].emit('new-notification', {count: data.length});
+                    }
+                })
+            }
         })
 
         //Send shweet comments added event to logged in users.
-        eventEmitter.on('on-comment-add', (subscribers, comments) => {
+        eventEmitter.on('on-comment-add', (subscribers, comments, shweet) => {
+            let author = shweet.author.username;
+            let author_id = shweet.author._id;
+            notificationModel.find({receiver: author_id, status: false}).then(function (data) {
+                if(data.length > 0 && users[author]) {
+                    users[author].emit('new-notification', {count: data.length});
+                }
+            })
+
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-comments-added', { comments: comments })
@@ -149,6 +181,40 @@ module.exports = function (io) {
         //             users[value.username].emit('shweet comments deleted', { comments: comments })
         //     })
         // })
+        //
+        // socket.on('notification-count', function (data) {
+        //     let jwt = data.jwt;
+        //     let decodedJwt = jwtDecode(jwt);
+        //     let id = decodedJwt.user.id;
+        //     notificationModel.find({invoker: id, status: false}).then(function (doc) {
+        //         let length = doc.length;
+        //         userModel.findById(doc.sender).then(function (data) {
+        //             users[doc.sender].emit('notification-count', {count: length})
+        //         });
+        //     });
+        //
+        // })
+
+        socket.on('subscribed-notification', function (data) {
+            let username = data.username;
+            let user_id = data.user_id;
+            notificationModel.find({receiver: user_id, status: false}).then(function (data) {
+                if(data.length > 0) {
+                    users[username].emit('new-notification', {count: data.length});
+                }
+            })
+        })
+
+        socket.on('unsubscribed-notification', function (data) {
+            let username = data.username;
+            let user_id = data.user_id;
+            notificationModel.find({receiver: user_id, status: false}).then(function (data) {
+                if(data.length > 0) {
+                    users[username].emit('new-notification', {count: data.length});
+                }
+            })
+        })
+
 
         socket.on("disconnect", function (data) {
             if (!socket.username) return;

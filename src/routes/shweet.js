@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
+const notificationModel = require('../models/notificationModel');
 const userModel = require("../models/userModel");
 const auth = require('../middleware/auth')
 const eventEmitter = require('../lib/eventEmitter')
@@ -68,7 +69,8 @@ router.get('/subscribed-shweets', auth, async (req, res) => {
         res.status(200).json(shweets)
 
     } catch (e) {
-        res.status(500).json('Server error')
+        res.status(500).json('Server error');
+        console.log(e);
     }
 
 });
@@ -114,7 +116,8 @@ router.get('/shweets', auth, async (req, res) => {
         res.status(200).json(shweets)
 
     } catch (e) {
-        res.status(500).json('Server error')
+        res.status(500).json('Server error');
+        console.log(e);
     }
 
 });
@@ -123,12 +126,22 @@ router.get('/shweets', auth, async (req, res) => {
 router.get('/shweet/:id', auth, async (req, res) => {
     try {
         let shweet = await shweetModel.findById(req.params.id)
+            .lean()
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
-            .populate('likes', 'username');
+            .populate('likes', 'username')
+            .populate('author', 'username avatar')
+            .exec();
         if (!shweet) res.status(400).json('Shweet not found');
+
+        let likers = await shweetModel.findById(req.params.id);
+        let user = await userModel.findById(req.user.id);
+
+        shweet.liked = likers.likes.includes(req.user.id);
+        shweet.subscribed = user.subscribes.includes(shweet.author._id)
+
         res.status(200).json(shweet)
 
     } catch (e) {
@@ -145,6 +158,7 @@ router.post('/shweet/create', auth, async (req, res) => {
         let shweetComments = new commentModel({
             comments: []
         });
+
         shweetComments.save()
 
         let shweet = new shweetModel({
@@ -159,23 +173,50 @@ router.post('/shweet/create', auth, async (req, res) => {
         await shweet.save();
 
         let response = await shweetModel.findById(shweet._id)
+            .lean()
             .populate('author', 'username')
             .populate({
                 path: 'comments',
                 populate: {path: 'comments.author', select: 'username avatar'}
             })
+            .exec();
         ;
 
         let user = await userModel.findById(req.user.id)
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
-        //Emit shweet created event.
-        eventEmitter.emit('on-shweet-creat', subscribers, response)
+
+        //Create and save notification into database
+        if(subscribers) {
+            console.log(subscribers);
+            subscribers.forEach((value, key) => {
+                let notification = new notificationModel({
+                    invoker: response.author._id,
+                    invokerUsername: response.author.username,
+                    receiver: value._id,
+                    shwitt_id: response._id,
+                    type: "shwitte",
+                    status: false
+                });
+                notification.save();
+            });
+
+            setTimeout(() => {
+                //Emit shweet created event.
+                eventEmitter.emit('on-shweet-create', subscribers, response);
+            },2000);
+        }
+
+
+
+
+
         res.status(200).json(response)
 
 
     } catch (e) {
         res.status(500).send('Error in Saving')
+        console.log(e)
     }
 
 })
@@ -287,8 +328,24 @@ router.post('/shweet/like', auth, async (req, res) => {
                 })
                 .exec();
 
+            eventEmitter.emit('on-like-change', subscribers, shweet, action);
+
+            //Create and save notification into database
+            let notification = new notificationModel({
+                invoker: user._id,
+                invokerUsername: user.username,
+                receiver: result.author._id,
+                type: "liked",
+                shwitt_id: result._id,
+                status: false
+            });
+            notification.save().then(() => {
+                eventEmitter.emit('on-like-change', subscribers, shweet, action);
+            });
+
             result.liked = true;
             res.status(200).json(result)
+            //Emit shweet created event.
         } else if (action === false) {
             let index = likers.indexOf(userId)
             likers.splice(index, 1)
@@ -304,13 +361,12 @@ router.post('/shweet/like', auth, async (req, res) => {
                 })
                 .exec();
             result.liked = false;
-
+            eventEmitter.emit('on-like-change', subscribers, shweet, action);
             res.status(200).json(result)
         } else {
             res.status(400).json('Missing action.')
         }
-        //Emit shweet created event.
-        eventEmitter.emit('on-like-change', subscribers, shweet)
+
 
     } catch (e) {
         res.status(500).json('server error')

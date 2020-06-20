@@ -4,8 +4,9 @@ const router = express.Router();
 const auth = require('../middleware/auth')
 const shweetModel = require('../models/shweetModel');
 const commentModel = require('../models/commentModel');
-const eventEmitter = require('../lib/eventEmitter')
-const userModel = require('../models/userModel')
+const eventEmitter = require('../lib/eventEmitter');
+const userModel = require('../models/userModel');
+const notificationModel = require('../models/notificationModel');
 
 // Create comment.
 router.post('/create', auth, async (req, res) => {
@@ -28,7 +29,6 @@ router.post('/create', auth, async (req, res) => {
         }
 
         comments.comments.push(newComment)
-
         await comments.save()
 
         let response = await commentModel.findById(req.body.comment_id)
@@ -38,8 +38,23 @@ router.post('/create', auth, async (req, res) => {
         let user = await userModel.findById(req.user.id)
             .populate('subscribers', 'username');
         let subscribers = user.subscribers;
+
+
+        let shweet = await shweetModel.findById(req.body.shwitt_id);
+
         //Emit comments created event.
-        eventEmitter.emit('on-comment-add', subscribers, response)
+        eventEmitter.emit('on-comment-add', subscribers, response, shweet)
+
+        //Create and save notification into database
+        let notification = new notificationModel({
+            invoker: user._id,
+            receiver: shweet.author,
+            invokerUsername: user.username,
+            type: "comment",
+            shwitt_id: req.body.shwitt_id,
+            status: false
+        });
+        notification.save();
 
     } catch (e) {
         console.error(e)
