@@ -110,7 +110,12 @@ module.exports = function (io) {
         eventEmitter.on('on-shweet-create', (subscribers, shweet) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username]) {
-                    users[value.username].emit('shweet-created', {shweet: shweet})
+                    users[value.username].emit('shweet-created', {shweet: shweet});
+                    notificationModel.find({receiver: value._id, status: false}).then(function (data) {
+                        if(data.length > 0) {
+                            users[value.username].emit('new-notification', {count: data,length});
+                        }
+                    })
                 }
             })
         })
@@ -157,19 +162,19 @@ module.exports = function (io) {
         //             users[value.username].emit('shweet comments deleted', { comments: comments })
         //     })
         // })
-
-        socket.on('notification-count', function (data) {
-            let jwt = data.jwt;
-            let decodedJwt = jwtDecode(jwt);
-            let id = decodedJwt.user.id;
-            notificationModel.find({invoker: id, status: false}).then(function (doc) {
-                let length = doc.length;
-                userModel.findById(doc.sender).then(function (data) {
-                    users[doc.sender].emit('notification-count', {count: length})
-                });
-            });
-
-        })
+        //
+        // socket.on('notification-count', function (data) {
+        //     let jwt = data.jwt;
+        //     let decodedJwt = jwtDecode(jwt);
+        //     let id = decodedJwt.user.id;
+        //     notificationModel.find({invoker: id, status: false}).then(function (doc) {
+        //         let length = doc.length;
+        //         userModel.findById(doc.sender).then(function (data) {
+        //             users[doc.sender].emit('notification-count', {count: length})
+        //         });
+        //     });
+        //
+        // })
 
         socket.on("disconnect", function (data) {
             if (!socket.username) return;
