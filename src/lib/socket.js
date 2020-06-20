@@ -113,7 +113,7 @@ module.exports = function (io) {
                     users[value.username].emit('shweet-created', {shweet: shweet});
                     notificationModel.find({receiver: value._id, status: false}).then(function (data) {
                         if(data.length > 0) {
-                            users[value.username].emit('new-notification', {count: data,length});
+                            users[value.username].emit('new-notification', {count: data.length});
                         }
                     })
                 }
@@ -130,11 +130,19 @@ module.exports = function (io) {
         // })
 
         //Send shweet likes changed event to logged in users.
-        eventEmitter.on('on-like-change', (subscribers, shweet) => {
+        eventEmitter.on('on-like-change', (subscribers, shweet, action) => {
             subscribers.forEach((value, key) => {
                 if (users[value.username])
                     users[value.username].emit('shweet-likes-changed', { shweet: shweet })
             })
+            if (action === true) {
+                let author = shweet.author.username;
+                notificationModel.find({receiver: author, status: false}).then(function (data) {
+                    if(data.length > 0) {
+                        users[author].emit('new-notification', {count: data.length});
+                    }
+                })
+            }
         })
 
         //Send shweet comments added event to logged in users.
